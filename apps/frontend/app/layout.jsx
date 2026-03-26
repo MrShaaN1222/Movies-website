@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Mirai Movies AI",
-  description: "All-in-one legal movie discovery and streaming ecosystem.",
+  description: "Discover, search, and stream movies from legal sources.",
 };
 
 export default function RootLayout({ children }) {
@@ -16,10 +16,10 @@ export default function RootLayout({ children }) {
               Mirai Movies AI
             </Link>
             <div className="flex gap-4 text-sm">
+              <Link href="/">Discover</Link>
               <Link href="/search">Search</Link>
+              <Link href="/ott">Stream</Link>
               <Link href="/free-movies">Free Movies</Link>
-              <Link href="/blog">Blog</Link>
-              <Link href="/dashboard">Dashboard</Link>
             </div>
           </nav>
         </header>
