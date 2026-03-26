@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Mirai Movies AI",
-  description: "Discover, search, and stream movies from legal sources.",
+  description: "Movies directory style browsing experience.",
 };
 
 export default function RootLayout({ children }) {
@@ -15,11 +15,16 @@ export default function RootLayout({ children }) {
             <Link href="/" className="text-xl font-bold text-white">
               Mirai Movies AI
             </Link>
-            <div className="flex gap-4 text-sm">
-              <Link href="/">Discover</Link>
-              <Link href="/search">Search</Link>
-              <Link href="/ott">Stream</Link>
-              <Link href="/free-movies">Free Movies</Link>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link href="/">HOME</Link>
+              <Link href="/search?q=bollywood">Bollywood</Link>
+              <Link href="/search?q=hollywood">Hollywood</Link>
+              <Link href="/search?q=dual+audio">Dual Audio</Link>
+              <Link href="/search?q=telugu">Telugu</Link>
+              <Link href="/search?q=tamil">Tamil</Link>
+              <Link href="/search?q=tv+shows">Tv Shows</Link>
+              <Link href="/search?q=genre">Genre</Link>
+              <Link href="/search?q=2025">By Year</Link>
             </div>
           </nav>
         </header>

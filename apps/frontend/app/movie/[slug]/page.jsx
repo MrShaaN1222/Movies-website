@@ -18,15 +18,25 @@ export default async function MovieDetailsPage({ params }) {
       </div>
 
       <div>
-        <h2 className="section-title">Where to Watch</h2>
+        <h2 className="section-title">Official Watch Links</h2>
         <AdSlot placement="movie-detail-top" />
-        <div className="flex flex-wrap gap-3">
-          {(providers || []).map((p) => (
-            <a key={p.name} href={p.affiliateUrl || p.url} className="rounded bg-brandAccent px-3 py-2 text-sm">
-              Watch on {p.name}
-            </a>
-          ))}
-        </div>
+        {providers && providers.length > 0 ? (
+          <div className="flex flex-wrap gap-3">
+            {providers.map((p) => (
+              <a
+                key={p.name}
+                href={p.affiliateUrl || p.url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded bg-brandAccent px-3 py-2 text-sm"
+              >
+                Watch on {p.name} (Official)
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">Official watch links are not available for this title yet.</p>
+        )}
       </div>
 
       <div>

@@ -4,40 +4,80 @@ const movies = [
     slug: "interstellar",
     title: "Interstellar",
     releaseDate: "2014-11-07",
+    language: "English",
+    genre: "Sci-Fi",
+    industry: "Hollywood",
+    poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
     overview: "A team travels through a wormhole to find humanity a new home.",
     trailers: [{ name: "Official Trailer", youtubeId: "zSWdZVtXT7E" }],
+    providers: [
+      { name: "Prime Video", url: "https://www.primevideo.com" },
+      { name: "Apple TV", url: "https://tv.apple.com" },
+    ],
   },
   {
     _id: "m2",
     slug: "inception",
     title: "Inception",
     releaseDate: "2010-07-16",
+    language: "English",
+    genre: "Sci-Fi",
+    industry: "Hollywood",
+    poster: "https://image.tmdb.org/t/p/w500/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg",
     overview: "A skilled thief enters dreams to steal secrets from the subconscious.",
     trailers: [{ name: "Official Trailer", youtubeId: "YoHD9XEInc0" }],
+    providers: [
+      { name: "Netflix", url: "https://www.netflix.com" },
+      { name: "Prime Video", url: "https://www.primevideo.com" },
+    ],
   },
   {
     _id: "m3",
     slug: "dune-part-two",
     title: "Dune: Part Two",
     releaseDate: "2024-03-01",
+    language: "English",
+    genre: "Sci-Fi",
+    industry: "Hollywood",
+    poster: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
     overview: "Paul Atreides unites with the Fremen to challenge House Harkonnen.",
     trailers: [{ name: "Official Trailer", youtubeId: "Way9Dexny3w" }],
+    providers: [
+      { name: "Prime Video", url: "https://www.primevideo.com" },
+      { name: "BookMyShow Stream", url: "https://in.bookmyshow.com/stream" },
+    ],
   },
   {
     _id: "m4",
     slug: "oppenheimer",
     title: "Oppenheimer",
     releaseDate: "2023-07-21",
+    language: "English",
+    genre: "Drama",
+    industry: "Hollywood",
+    poster: "https://image.tmdb.org/t/p/w500/ptpr0kGAckfQkJeJIt8st5dglvd.jpg",
     overview: "A historical drama about J. Robert Oppenheimer and the Manhattan Project.",
     trailers: [{ name: "Official Trailer", youtubeId: "uYPbbksJxIg" }],
+    providers: [
+      { name: "JioHotstar", url: "https://www.hotstar.com" },
+      { name: "Apple TV", url: "https://tv.apple.com" },
+    ],
   },
   {
     _id: "m5",
     slug: "the-batman",
     title: "The Batman",
     releaseDate: "2022-03-04",
+    language: "English",
+    genre: "Action",
+    industry: "Hollywood",
+    poster: "https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg",
     overview: "Batman uncovers corruption in Gotham while hunting the Riddler.",
     trailers: [{ name: "Official Trailer", youtubeId: "mqqft2x_Aa4" }],
+    providers: [
+      { name: "JioHotstar", url: "https://www.hotstar.com" },
+      { name: "Prime Video", url: "https://www.primevideo.com" },
+    ],
   },
 ];
 
@@ -89,14 +129,6 @@ const reviewsBySlug = {
   inception: [{ _id: "r3", rating: 9, content: "A smart thriller with incredible set pieces." }],
 };
 
-const providersBySlug = {
-  interstellar: [
-    { name: "Prime Video", url: "https://www.primevideo.com", affiliateUrl: "https://example.com/r/prime-interstellar" },
-    { name: "Apple TV", url: "https://tv.apple.com", affiliateUrl: "https://example.com/r/apple-interstellar" },
-  ],
-  inception: [{ name: "Netflix", url: "https://www.netflix.com", affiliateUrl: "https://example.com/r/netflix-inception" }],
-};
-
 function getMovie(slug) {
   return movies.find((m) => m.slug === slug) || null;
 }
@@ -104,7 +136,9 @@ function getMovie(slug) {
 function searchMovies(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  return movies.filter((m) => [m.title, m.overview].join(" ").toLowerCase().includes(q));
+  return movies.filter((m) =>
+    [m.title, m.overview, m.genre, m.language, m.industry, m.releaseDate].join(" ").toLowerCase().includes(q)
+  );
 }
 
 export function getMockData(path) {
@@ -136,7 +170,8 @@ export function getMockData(path) {
 
   if (pathname.startsWith("/api/v1/movies/") && pathname.endsWith("/watch-providers")) {
     const slug = pathname.replace("/api/v1/movies/", "").replace("/watch-providers", "");
-    return providersBySlug[slug] || [];
+    const movie = getMovie(slug);
+    return movie?.providers || [];
   }
 
   if (pathname.startsWith("/api/v1/movies/")) {
