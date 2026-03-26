@@ -1,0 +1,11 @@
+{
+  "name": "@mirai/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('frontend dev scaffold pending')\"",
+    "build": "node -e \"console.log('frontend build scaffold pending')\"",
+    "test": "node -e \"console.log('frontend test scaffold pending')\"",
+    "lint": "node -e \"console.log('frontend lint scaffold pending')\""
+  }
+}
