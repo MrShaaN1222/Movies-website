@@ -8,8 +8,16 @@ const movies = [
     genre: "Sci-Fi",
     industry: "Hollywood",
     poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    quality: "1080p",
+    runtime: "2h 49m",
+    country: "USA",
     overview: "A team travels through a wormhole to find humanity a new home.",
     trailers: [{ name: "Official Trailer", youtubeId: "zSWdZVtXT7E" }],
+    screenshots: [
+      "https://image.tmdb.org/t/p/w780/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg",
+      "https://image.tmdb.org/t/p/w780/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
+      "https://image.tmdb.org/t/p/w780/8qv6f9Y3jN1M8x8M9vDOMkMt2rt.jpg",
+    ],
     providers: [
       { name: "Prime Video", url: "https://www.primevideo.com" },
       { name: "Apple TV", url: "https://tv.apple.com" },
@@ -24,8 +32,16 @@ const movies = [
     genre: "Sci-Fi",
     industry: "Hollywood",
     poster: "https://image.tmdb.org/t/p/w500/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg",
+    quality: "1080p",
+    runtime: "2h 28m",
+    country: "USA",
     overview: "A skilled thief enters dreams to steal secrets from the subconscious.",
     trailers: [{ name: "Official Trailer", youtubeId: "YoHD9XEInc0" }],
+    screenshots: [
+      "https://image.tmdb.org/t/p/w780/s2bT29y0ngXxxu2IA8AOzzXTRhd.jpg",
+      "https://image.tmdb.org/t/p/w780/qmDpIHrmpJINaRKAfWQfftjCdyi.jpg",
+      "https://image.tmdb.org/t/p/w780/wg7jM3nJ2fX3mQ9t6Jv4cGr0qfA.jpg",
+    ],
     providers: [
       { name: "Netflix", url: "https://www.netflix.com" },
       { name: "Prime Video", url: "https://www.primevideo.com" },
@@ -40,8 +56,16 @@ const movies = [
     genre: "Sci-Fi",
     industry: "Hollywood",
     poster: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+    quality: "1080p",
+    runtime: "2h 46m",
+    country: "USA",
     overview: "Paul Atreides unites with the Fremen to challenge House Harkonnen.",
     trailers: [{ name: "Official Trailer", youtubeId: "Way9Dexny3w" }],
+    screenshots: [
+      "https://image.tmdb.org/t/p/w780/caQp2MhwlkJ3V9D4Tr5kL5M4u9Y.jpg",
+      "https://image.tmdb.org/t/p/w780/oBIQDKcqNxKckjugtmzpIIOgoc4.jpg",
+      "https://image.tmdb.org/t/p/w780/lY6kY06lYxGvU8gjDo0M2ICf8hQ.jpg",
+    ],
     providers: [
       { name: "Prime Video", url: "https://www.primevideo.com" },
       { name: "BookMyShow Stream", url: "https://in.bookmyshow.com/stream" },
@@ -56,8 +80,16 @@ const movies = [
     genre: "Drama",
     industry: "Hollywood",
     poster: "https://image.tmdb.org/t/p/w500/ptpr0kGAckfQkJeJIt8st5dglvd.jpg",
+    quality: "1080p",
+    runtime: "3h 0m",
+    country: "USA",
     overview: "A historical drama about J. Robert Oppenheimer and the Manhattan Project.",
     trailers: [{ name: "Official Trailer", youtubeId: "uYPbbksJxIg" }],
+    screenshots: [
+      "https://image.tmdb.org/t/p/w780/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+      "https://image.tmdb.org/t/p/w780/aEIh1qfK3f6oFQ6Y5uABm0f4MJa.jpg",
+      "https://image.tmdb.org/t/p/w780/e0M3OjW6f7H8k2x1lS4qXv8W2cA.jpg",
+    ],
     providers: [
       { name: "JioHotstar", url: "https://www.hotstar.com" },
       { name: "Apple TV", url: "https://tv.apple.com" },
@@ -72,8 +104,16 @@ const movies = [
     genre: "Action",
     industry: "Hollywood",
     poster: "https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg",
+    quality: "1080p",
+    runtime: "2h 56m",
+    country: "USA",
     overview: "Batman uncovers corruption in Gotham while hunting the Riddler.",
     trailers: [{ name: "Official Trailer", youtubeId: "mqqft2x_Aa4" }],
+    screenshots: [
+      "https://image.tmdb.org/t/p/w780/b0PlSFdDwbyK0cf5RxwDpaOJQvQ.jpg",
+      "https://image.tmdb.org/t/p/w780/tRS6jvPM9qPrrnx2KRp3ew96Yot.jpg",
+      "https://image.tmdb.org/t/p/w780/5P8SmMzSNYikXpxil6BYzJ16611.jpg",
+    ],
     providers: [
       { name: "JioHotstar", url: "https://www.hotstar.com" },
       { name: "Prime Video", url: "https://www.primevideo.com" },
@@ -126,7 +166,22 @@ const reviewsBySlug = {
     { _id: "r1", rating: 9, content: "Emotional, ambitious, and visually stunning." },
     { _id: "r2", rating: 8, content: "Great score and world building." },
   ],
-  inception: [{ _id: "r3", rating: 9, content: "A smart thriller with incredible set pieces." }],
+  inception: [
+    { _id: "r3", rating: 9, content: "A smart thriller with incredible set pieces." },
+    { _id: "r4", rating: 8, content: "Complex story, strong performances, and top visuals." },
+  ],
+  "dune-part-two": [
+    { _id: "r5", rating: 9, content: "Massive scale with incredible world building and action." },
+    { _id: "r6", rating: 8, content: "Great continuation with strong visuals and soundtrack." },
+  ],
+  oppenheimer: [
+    { _id: "r7", rating: 9, content: "Powerful performances and an intense cinematic experience." },
+    { _id: "r8", rating: 8, content: "Rich dialogue and excellent direction throughout." },
+  ],
+  "the-batman": [
+    { _id: "r9", rating: 8, content: "Dark detective tone with strong atmosphere and score." },
+    { _id: "r10", rating: 8, content: "Gritty Gotham and a compelling new Batman style." },
+  ],
 };
 
 function getMovie(slug) {

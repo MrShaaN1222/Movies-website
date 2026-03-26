@@ -4,7 +4,8 @@ import { apiGet } from "../../lib/api";
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }) {
-  const query = searchParams?.q || "";
+  const params = await searchParams;
+  const query = params?.q || "";
   const results = query ? await apiGet(`/api/v1/movies/search?q=${encodeURIComponent(query)}`) : [];
 
   return (

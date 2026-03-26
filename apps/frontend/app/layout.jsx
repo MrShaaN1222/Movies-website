@@ -29,6 +29,15 @@ export default function RootLayout({ children }) {
           </nav>
         </header>
         <main className="mx-auto min-h-screen max-w-7xl px-6 py-8">{children}</main>
+        <footer className="border-t border-slate-800 px-6 py-6 text-sm text-slate-400">
+          <div className="mx-auto flex max-w-7xl flex-wrap gap-4">
+            <Link href="/search?q=contact">Contact Us</Link>
+            <Link href="/search?q=request">Request Us</Link>
+            <Link href="/search?q=dmca">DMCA</Link>
+            <Link href="/search?q=about">About Us</Link>
+            <Link href="/search?q=sitemap">Sitemap</Link>
+          </div>
+        </footer>
       </body>
     </html>
   );

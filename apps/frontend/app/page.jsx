@@ -11,7 +11,9 @@ export default async function HomePage() {
     apiGet("/api/v1/movies/upcoming"),
   ]);
 
-  const latestTitles = [...(upcoming || []), ...(popular || []), ...(trending || [])].slice(0, 16);
+  const latestTitles = [...(upcoming || []), ...(popular || []), ...(trending || [])]
+    .filter((movie, index, arr) => arr.findIndex((m) => (m._id || m.slug) === (movie._id || movie.slug)) === index)
+    .slice(0, 16);
   const bollywood = ["Bollywood New Releases", "Bollywood Family Movies", "Bollywood Action", "Bollywood Drama"];
   const hollywood = ["Hollywood New Releases", "Hollywood Action", "Hollywood Sci-Fi", "Hollywood Thrillers"];
   const dualAudio = ["Hindi Dubbed", "Dual Audio Hindi-English", "Dual Audio Hindi-Telugu", "Dual Audio Latest"];
