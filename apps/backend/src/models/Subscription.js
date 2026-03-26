@@ -1,0 +1,16 @@
+import mongoose from "mongoose";
+
+const subscriptionSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true, required: true },
+    provider: { type: String, default: "razorpay" },
+    planCode: { type: String, required: true },
+    status: { type: String, enum: ["inactive", "active", "past_due", "cancelled"], default: "inactive" },
+    razorpayCustomerId: String,
+    razorpaySubscriptionId: String,
+    currentPeriodEnd: Date,
+  },
+  { timestamps: true }
+);
+
+export const Subscription = mongoose.model("Subscription", subscriptionSchema);

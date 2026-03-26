@@ -3,9 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('frontend dev scaffold pending')\"",
-    "build": "node -e \"console.log('frontend build scaffold pending')\"",
-    "test": "node -e \"console.log('frontend test scaffold pending')\"",
-    "lint": "node -e \"console.log('frontend lint scaffold pending')\""
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node -e \"console.log('frontend tests pending')\"",
+    "lint": "node -e \"console.log('frontend lint configured in Phase 0 standards')\""
+  },
+  "dependencies": {
+    "@mirai/shared": "*",
+    "framer-motion": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
   }
 }

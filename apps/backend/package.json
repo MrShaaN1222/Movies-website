@@ -3,9 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('backend dev scaffold pending')\"",
-    "build": "node -e \"console.log('backend build scaffold pending')\"",
-    "test": "node -e \"console.log('backend test scaffold pending')\"",
-    "lint": "node -e \"console.log('backend lint scaffold pending')\""
+    "dev": "node --watch src/index.js",
+    "build": "node -e \"console.log('backend build not required for JS runtime')\"",
+    "start": "node src/index.js",
+    "test": "node -e \"console.log('backend tests pending')\"",
+    "lint": "node -e \"console.log('backend lint pending')\""
+  },
+  "dependencies": {
+    "@mirai/shared": "*",
+    "bcryptjs": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "helmet": "latest",
+    "jsonwebtoken": "latest",
+    "mongoose": "latest",
+    "morgan": "latest",
+    "multer": "latest",
+    "zod": "latest"
   }
 }
