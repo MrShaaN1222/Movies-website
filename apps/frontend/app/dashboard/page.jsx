@@ -1,4 +1,37 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiGetAuth } from "../../lib/api";
+
 export default function DashboardPage() {
+  const [continueItems, setContinueItems] = useState([]);
+  const [subscription, setSubscription] = useState({ status: "inactive", planCode: null });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [progressRows, sub] = await Promise.all([
+          apiGetAuth("/api/v1/ott/progress/continue"),
+          apiGetAuth("/api/v1/monetization/subscriptions/me"),
+        ]);
+        if (!cancelled) {
+          setContinueItems(Array.isArray(progressRows) ? progressRows : []);
+          setSubscription(sub || { status: "inactive", planCode: null });
+        }
+      } catch {
+        // Keep defaults when auth is missing.
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section>
       <h1 className="mb-4 text-3xl font-bold">User Dashboard</h1>
@@ -9,11 +42,27 @@ export default function DashboardPage() {
         </div>
         <div className="rounded bg-brandCard p-4">
           <h2 className="mb-2 font-semibold">Continue Watching</h2>
-          <p className="text-slate-300">Resume OTT content across devices.</p>
+          {continueItems.length === 0 ? (
+            <p className="text-slate-300">Resume OTT content across devices.</p>
+          ) : (
+            <div className="space-y-2">
+              {continueItems.slice(0, 3).map((row) => (
+                <Link
+                  key={row.progressId}
+                  className="block text-sm text-brandAccent"
+                  href={`/ott/${row.content.slug}`}
+                >
+                  {row.content.title} - {Math.floor((row.seconds || 0) / 60)} min
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
         <div className="rounded bg-brandCard p-4">
           <h2 className="mb-2 font-semibold">Subscription</h2>
-          <p className="text-slate-300">Razorpay plan status will be shown here.</p>
+          <p className="text-slate-300">
+            Status: {subscription.status} {subscription.planCode ? `(${subscription.planCode})` : ""}
+          </p>
         </div>
       </div>
     </section>

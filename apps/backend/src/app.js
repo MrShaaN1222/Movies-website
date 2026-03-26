@@ -19,7 +19,14 @@ export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(cors({ origin: env.FRONTEND_URL }));
-  app.use(express.json({ limit: "10mb" }));
+  app.use(
+    express.json({
+      limit: "10mb",
+      verify: (req, _res, buf) => {
+        req.rawBody = buf.toString();
+      },
+    })
+  );
   app.use(morgan("dev"));
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));

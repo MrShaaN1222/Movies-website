@@ -2,6 +2,7 @@ import "./globals.css";
 import Link from "next/link";
 import NewsletterBox from "../components/NewsletterBox";
 import NavMenu from "../components/NavMenu";
+import AuthActions from "../components/AuthActions";
 
 export const metadata = {
   title: "Mirai Movies AI",
@@ -67,14 +68,17 @@ export default function RootLayout({ children }) {
               <Link href="/" className="text-xl font-bold text-white transition hover:text-brandAccent">
                 Mirai Movies AI
               </Link>
-              <form action="/search" method="get" className="w-full md:w-auto">
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="Search movies, genre, year..."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-brandAccent md:min-w-72"
-                />
-              </form>
+              <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+                <form action="/search" method="get" className="w-full md:w-auto">
+                  <input
+                    type="text"
+                    name="q"
+                    placeholder="Search movies, genre, year..."
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-brandAccent md:min-w-72"
+                  />
+                </form>
+                <AuthActions />
+              </div>
             </div>
             <NavMenu navItems={navItems} dropdownMenus={dropdownMenus} yearOptions={yearOptions} />
           </nav>
