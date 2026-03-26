@@ -4,7 +4,9 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, Number(params?.page) || 1);
   const [trending, popular, upcoming] = await Promise.all([
     apiGet("/api/v1/movies/trending"),
     apiGet("/api/v1/movies/popular"),
@@ -18,12 +20,20 @@ export default async function HomePage() {
   const hollywood = ["Hollywood New Releases", "Hollywood Action", "Hollywood Sci-Fi", "Hollywood Thrillers"];
   const dualAudio = ["Hindi Dubbed", "Dual Audio Hindi-English", "Dual Audio Hindi-Telugu", "Dual Audio Latest"];
   const genres = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Drama", "Fantasy", "Horror", "Romance", "Thriller"];
-  const years = ["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"];
+  const itemsPerPage = 20;
+  const totalItems = latestTitles.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const pagedMovies = latestTitles.slice(startIndex, startIndex + itemsPerPage);
+  const maxVisiblePages = 10;
+  const visiblePages = Array.from({ length: Math.min(totalPages, maxVisiblePages) }, (_, idx) => idx + 1);
+  const hasMorePages = totalPages > maxVisiblePages;
+  const nextPage = hasMorePages ? visiblePages[visiblePages.length - 1] + 1 : null;
 
   return (
     <>
       <HeroBanner />
-
       <section className="mb-8 rounded-xl bg-brandCard p-5">
         <h2 className="section-title">Categories</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -72,8 +82,8 @@ export default async function HomePage() {
 
       <section className="mb-8">
         <h2 className="section-title">Latest Movies and Series (Legal Watch)</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-          {latestTitles.map((movie) => (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-5">
+          {pagedMovies.map((movie) => (
             <article key={movie._id || movie.slug} className="overflow-hidden rounded-lg bg-brandCard">
               <Link href={`/movie/${movie.slug}`} className="block">
                 <div className="relative h-64 w-full bg-slate-800">
@@ -103,39 +113,29 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mb-8 rounded-xl bg-brandCard p-5">
-        <h2 className="section-title">By Year</h2>
-        <div className="flex flex-wrap gap-2">
-          {years.map((year) => (
-            <Link key={year} href={`/search?q=${year}`} className="rounded bg-slate-800 px-3 py-1 text-xs">
-              {year}
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <section className="mb-8">
         <h2 className="section-title">Pages</h2>
         <div className="flex flex-wrap gap-2 text-sm">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map((p) => (
-            <Link key={p} href={`/search?q=page+${p}`} className="rounded bg-brandCard px-3 py-1">
-              {p}
+          {visiblePages.map((page) => (
+            <Link
+              key={page}
+              href={`/?page=${page}`}
+              className={`rounded px-3 py-1 ${page === safeCurrentPage ? "bg-brandAccent text-white" : "bg-brandCard"}`}
+            >
+              {page}
             </Link>
           ))}
-          <span className="rounded bg-brandCard px-3 py-1">...</span>
-          <span className="rounded bg-brandCard px-3 py-1">560</span>
+          {hasMorePages && nextPage ? (
+            <>
+              <Link href={`/?page=${nextPage}`} className="rounded bg-brandCard px-3 py-1">
+                ...
+              </Link>
+              <span className="rounded bg-brandCard px-3 py-1">{totalPages}</span>
+            </>
+          ) : null}
         </div>
       </section>
 
-      <footer className="mb-6 border-t border-slate-800 pt-5 text-sm text-slate-400">
-        <div className="flex flex-wrap gap-4">
-          <Link href="/search?q=contact">Contact Us</Link>
-          <Link href="/search?q=request">Request Us</Link>
-          <Link href="/search?q=dmca">DMCA</Link>
-          <Link href="/search?q=about">About Us</Link>
-          <Link href="/search?q=sitemap">Sitemap</Link>
-        </div>
-      </footer>
     </>
   );
 }

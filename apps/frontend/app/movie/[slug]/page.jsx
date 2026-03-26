@@ -16,21 +16,26 @@ export default async function MovieDetailsPage({ params }) {
 
   if (!movie) return <p>Movie not found.</p>;
 
+  const highlightedGenres = (movie.genre || "Action, Adventure, Sci-Fi")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(", ");
+
   return (
-    <section className="grid gap-5 lg:grid-cols-[260px,1fr]">
-      <aside className="rounded-lg bg-brandCard p-3">
-        <h2 className="mb-3 text-sm font-semibold text-slate-300">Recent Movies</h2>
-        <div className="space-y-2">
+    <section className="grid gap-5 lg:grid-cols-[300px,1fr]">
+      <aside className="rounded-lg bg-brandCard p-4">
+        <h2 className="mb-4 border-b border-slate-700 pb-2 text-sm font-bold uppercase tracking-wide text-slate-100">Recent Posts</h2>
+        <ul className="list-disc space-y-2 pl-4 text-sm text-slate-200 marker:text-slate-400">
           {(latest || []).map((item) => (
-            <Link
-              key={item._id || item.slug}
-              href={`/movie/${item.slug}`}
-              className="block rounded bg-slate-800 px-2 py-2 text-xs hover:bg-slate-700"
-            >
-              {item.title}
-            </Link>
+            <li key={item._id || item.slug}>
+              <Link href={`/movie/${item.slug}`} className="leading-7 hover:text-white">
+                {item.title}
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       </aside>
 
       <article className="rounded-lg bg-brandCard p-4">
@@ -58,6 +63,14 @@ export default async function MovieDetailsPage({ params }) {
         </div>
 
         <AdSlot placement="movie-detail-top" />
+
+        <div className="mb-5 rounded border border-slate-700 bg-slate-900/80 p-4">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-200">Watch Movies Online</h2>
+          <p className="text-sm leading-6 text-slate-300">
+            Mirai Movies is your destination to discover {highlightedGenres} titles. Use the verified buttons below to open
+            official provider pages and follow the on-screen steps to start watching instantly.
+          </p>
+        </div>
 
         <div className="mb-5 rounded bg-slate-900 p-3">
           <h2 className="mb-2 text-sm font-semibold">Storyline</h2>

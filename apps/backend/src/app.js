@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import ottRoutes from "./routes/ott.routes.js";
 import recommendationRoutes from "./routes/recommendations.routes.js";
 import monetizationRoutes from "./routes/monetization.routes.js";
+import newsletterRoutes from "./routes/newsletter.routes.js";
 import { env } from "./config/env.js";
 
 export function createApp() {
@@ -33,6 +34,7 @@ export function createApp() {
   app.use("/api/v1/ott", ottRoutes);
   app.use("/api/v1/recommendations", recommendationRoutes);
   app.use("/api/v1/monetization", monetizationRoutes);
+  app.use("/api/v1/newsletter", newsletterRoutes);
   app.use("/", providerRoutes);
 
   return app;
