@@ -63,6 +63,16 @@ export default function DashboardPage() {
           <p className="text-slate-300">
             Status: {subscription.status} {subscription.planCode ? `(${subscription.planCode})` : ""}
           </p>
+          <div className="mt-3 flex gap-2">
+            <Link href="/subscription" className="text-sm text-brandAccent">
+              Manage subscription
+            </Link>
+            {subscription.status !== "active" ? (
+              <Link href="/purchase" className="text-sm text-brandAccent">
+                Purchase premium
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

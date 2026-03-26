@@ -21,6 +21,7 @@ export default function RegisterPage() {
       await apiPost("/api/v1/auth/register", { name, email, password });
       const loginData = await apiPost("/api/v1/auth/login", { email, password });
       if (loginData?.token) window.localStorage.setItem("mirai_token", loginData.token);
+      window.dispatchEvent(new Event("mirai-auth-changed"));
       router.push("/dashboard");
     } catch (err) {
       setError(err?.message || "Registration failed");

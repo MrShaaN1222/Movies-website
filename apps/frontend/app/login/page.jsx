@@ -20,6 +20,7 @@ export default function LoginPage() {
       const data = await apiPost("/api/v1/auth/login", { email, password });
       if (!data?.token) throw new Error("Login failed. No token received.");
       window.localStorage.setItem("mirai_token", data.token);
+      window.dispatchEvent(new Event("mirai-auth-changed"));
       router.push("/dashboard");
     } catch (err) {
       setError(err?.message || "Login failed");

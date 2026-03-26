@@ -13,9 +13,16 @@ export default async function OttPage() {
           <article key={item._id} className="rounded bg-brandCard p-4">
             <h2 className="font-semibold">{item.title}</h2>
             <p className="my-2 text-sm text-slate-300">{item.type}</p>
-            <Link href={`/ott/${item.slug}`} className="text-brandAccent">
-              Watch now
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href={`/ott/${item.slug}`} className="text-brandAccent">
+                Watch now
+              </Link>
+              {item.isPremium ? (
+                <Link href="/purchase" className="rounded border border-slate-700 px-2 py-1 text-xs text-white">
+                  Purchase
+                </Link>
+              ) : null}
+            </div>
           </article>
         ))}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiGetAuth, apiPostAuth } from "../lib/api";
 
 export default function OttPlayerClient({ slug }) {
@@ -8,6 +9,7 @@ export default function OttPlayerClient({ slug }) {
   const [content, setContent] = useState(null);
   const [playback, setPlayback] = useState(null);
   const [status, setStatus] = useState("Loading...");
+  const [statusCode, setStatusCode] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +31,7 @@ export default function OttPlayerClient({ slug }) {
         }
       } catch (error) {
         if (!cancelled) {
+          setStatusCode(error?.status || 0);
           setStatus(error?.message || "Unable to load playback.");
         }
       }
@@ -68,9 +71,37 @@ export default function OttPlayerClient({ slug }) {
           <source src={playback.hlsUrl} type="application/x-mpegURL" />
         </video>
       ) : (
-        <p className="mb-4 rounded bg-brandCard p-3 text-sm text-amber-300">
-          {status || "Premium access required. Please login with an active subscription."}
-        </p>
+        <div className="mb-4 rounded bg-brandCard p-3 text-sm">
+          <p className="text-amber-300">
+            {status || "Premium access required. Please login with an active subscription."}
+          </p>
+          {statusCode === 401 ? (
+            <div className="mt-3">
+              <Link
+                href="/login"
+                className="inline-block rounded bg-brandAccent px-3 py-2 text-xs font-medium text-white"
+              >
+                Login to continue
+              </Link>
+            </div>
+          ) : null}
+          {statusCode === 402 ? (
+            <div className="mt-3 flex gap-2">
+              <Link
+                href="/purchase"
+                className="inline-block rounded bg-brandAccent px-3 py-2 text-xs font-medium text-white"
+              >
+                Purchase Premium
+              </Link>
+              <Link
+                href="/subscription"
+                className="inline-block rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white"
+              >
+                Check Subscription
+              </Link>
+            </div>
+          ) : null}
+        </div>
       )}
       <p className="text-slate-300">{content.description}</p>
     </section>
