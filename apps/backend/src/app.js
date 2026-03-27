@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { env } from "./config/env.js";
+import { isDatabaseConnected } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import movieRoutes from "./routes/movies.routes.js";
 import providerRoutes from "./routes/providers.routes.js";
@@ -13,7 +15,6 @@ import ottRoutes from "./routes/ott.routes.js";
 import recommendationRoutes from "./routes/recommendations.routes.js";
 import monetizationRoutes from "./routes/monetization.routes.js";
 import newsletterRoutes from "./routes/newsletter.routes.js";
-import { env } from "./config/env.js";
 
 function normalizeOrigin(value) {
   return String(value || "").trim().replace(/\/+$/, "");
@@ -72,7 +73,18 @@ export function createApp() {
   );
   app.use(morgan("dev"));
 
-  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api/")) return next();
+    if (isDatabaseConnected()) return next();
+    return res.status(503).json({
+      error: "Database unavailable",
+      message: "MongoDB is not connected. Check MONGODB_URI, Atlas IP whitelist, or run local MongoDB (docker compose up -d mongo).",
+    });
+  });
+
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", database: isDatabaseConnected() ? "connected" : "disconnected" });
+  });
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/movies", movieRoutes);
