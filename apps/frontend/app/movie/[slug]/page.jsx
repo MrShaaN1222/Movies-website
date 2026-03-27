@@ -1,6 +1,7 @@
 import { apiGet } from "../../../lib/api";
 import AdSlot from "../../../components/AdSlot";
 import Link from "next/link";
+import MovieResumeTracker from "../../../components/MovieResumeTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function MovieDetailsPage({ params }) {
       </aside>
 
       <article className="rounded-lg bg-brandCard p-4">
+        <MovieResumeTracker slug={slug} />
         <h1 className="mb-2 text-2xl font-bold md:text-3xl">{movie.title}</h1>
         <p className="mb-4 text-sm text-slate-300">
           {movie.releaseDate} | {movie.language} | {movie.quality} | {movie.runtime}

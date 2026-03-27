@@ -9,6 +9,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [continueItems, setContinueItems] = useState([]);
+  const [nonOttContinue, setNonOttContinue] = useState([]);
+  const [nonOttWishlistCount, setNonOttWishlistCount] = useState(0);
   const [subscription, setSubscription] = useState({ status: "inactive", planCode: null });
 
   useEffect(() => {
@@ -21,12 +23,16 @@ export default function DashboardPage() {
         return;
       }
       try {
-        const [progressRows, sub] = await Promise.all([
+        const [progressRows, sub, nonOttRows, nonOttWishlist] = await Promise.all([
           apiGetAuth("/api/v1/ott/progress/continue"),
           apiGetAuth("/api/v1/monetization/subscriptions/me"),
+          apiGetAuth("/api/v1/movies/continue"),
+          apiGetAuth("/api/v1/movies/favorites"),
         ]);
         if (!cancelled) {
           setContinueItems(Array.isArray(progressRows) ? progressRows : []);
+          setNonOttContinue(Array.isArray(nonOttRows) ? nonOttRows : []);
+          setNonOttWishlistCount(Array.isArray(nonOttWishlist?.slugs) ? nonOttWishlist.slugs.length : 0);
           setSubscription(sub || { status: "inactive", planCode: null });
           setReady(true);
         }
@@ -64,11 +70,11 @@ export default function DashboardPage() {
           href="/dashboard/watchlist"
           className="block rounded bg-brandCard p-4 transition hover:bg-brandCard/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandAccent"
         >
-          <h2 className="mb-2 font-semibold">Watchlist</h2>
-          <p className="text-slate-300">Saved movies will appear here.</p>
+          <h2 className="mb-2 font-semibold">OTT Watchlist</h2>
+          <p className="text-slate-300">Saved OTT movies and shows appear here.</p>
         </Link>
         <div className="rounded bg-brandCard p-4">
-          <h2 className="mb-2 font-semibold">Continue Watching</h2>
+          <h2 className="mb-2 font-semibold">OTT Continue Watching</h2>
           {continueItems.length === 0 ? (
             <p className="text-slate-300">Resume OTT content across devices.</p>
           ) : (
@@ -87,6 +93,32 @@ export default function DashboardPage() {
           <div className="mt-3">
             <Link href="/dashboard/continue-watching" className="text-sm text-brandAccent">
               Open continue watching
+            </Link>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/non-ott-wishlist"
+          className="block rounded bg-brandCard p-4 transition hover:bg-brandCard/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandAccent"
+        >
+          <h2 className="mb-2 font-semibold">Non-OTT Wishlist</h2>
+          <p className="text-slate-300">{nonOttWishlistCount} saved movie(s) from Home/Search cards.</p>
+        </Link>
+        <div className="rounded bg-brandCard p-4">
+          <h2 className="mb-2 font-semibold">Non-OTT Continue</h2>
+          {nonOttContinue.length === 0 ? (
+            <p className="text-slate-300">Recently opened non-OTT titles appear here.</p>
+          ) : (
+            <div className="space-y-2">
+              {nonOttContinue.slice(0, 3).map((movie) => (
+                <Link key={movie._id || movie.slug} className="block text-sm text-brandAccent" href={`/movie/${movie.slug}`}>
+                  {movie.title}
+                </Link>
+              ))}
+            </div>
+          )}
+          <div className="mt-3">
+            <Link href="/dashboard/non-ott-continue" className="text-sm text-brandAccent">
+              Open non-OTT continue
             </Link>
           </div>
         </div>

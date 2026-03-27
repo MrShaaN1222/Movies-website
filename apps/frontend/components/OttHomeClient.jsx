@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { apiGetAuth } from "../lib/api";
+import { apiDeleteAuth, apiGetAuth, apiPostAuth } from "../lib/api";
 
 const HERO_AUTOPLAY_MS = 7000;
 
@@ -21,7 +21,7 @@ function formatMinutes(seconds) {
   return Math.max(1, Math.floor((seconds || 0) / 60));
 }
 
-function OttPosterCard({ item, loggedIn, metaText }) {
+function OttPosterCard({ item, loggedIn, metaText, inWatchlist, watchlistBusy, onToggleWatchlist }) {
   const poster = item.posterUrl;
   const premium = item.isPremium !== false;
   const showSignInGate = premium && !loggedIn;
@@ -54,6 +54,25 @@ function OttPosterCard({ item, loggedIn, metaText }) {
             <img src={SIGNIN_BADGE} alt="Sign in to watch premium content" className="max-h-16 w-full max-w-[min(100%,220px)] object-contain object-bottom" />
           </div>
         ) : null}
+        {loggedIn ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleWatchlist(item.slug);
+            }}
+            disabled={watchlistBusy}
+            aria-label={inWatchlist ? `Remove ${item.title} from watchlist` : `Add ${item.title} to watchlist`}
+            className={`absolute bottom-2 right-2 z-[3] inline-flex h-8 w-8 items-center justify-center rounded-full border text-white shadow-md backdrop-blur disabled:cursor-not-allowed disabled:opacity-60 ${
+              inWatchlist ? "border-rose-400 bg-rose-500/90" : "border-white/40 bg-black/55 hover:bg-black/75"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden>
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4C8.24 4 9.91 4.81 11 6.09 12.09 4.81 13.76 4 15.5 4A4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </button>
+        ) : null}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ottBlue text-white shadow-lg">
             <svg viewBox="0 0 24 24" className="ml-0.5 h-5 w-5 fill-current" aria-hidden>
@@ -71,7 +90,7 @@ function OttPosterCard({ item, loggedIn, metaText }) {
   );
 }
 
-function Row({ title, subtitle, children, id }) {
+function Row({ title, subtitle, children, id, viewAllHref }) {
   return (
     <section id={id} className="scroll-mt-28">
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -79,11 +98,29 @@ function Row({ title, subtitle, children, id }) {
           <h2 className="text-lg font-semibold text-white md:text-xl">{title}</h2>
           {subtitle ? <p className="text-sm text-zinc-400">{subtitle}</p> : null}
         </div>
-        <span className="hidden text-sm text-ottBlue sm:inline">View all</span>
+        <Link href={viewAllHref || "/ott"} className="hidden text-sm text-ottBlue hover:underline sm:inline">
+          View all
+        </Link>
       </div>
       <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">{children}</div>
     </section>
   );
+}
+
+function getSectionData(section, { continueItems, watchlistItems, items, list }) {
+  if (section === "continue") {
+    return { title: "Continue Watching", subtitle: "Pick up where you left off", items: continueItems, type: "continue" };
+  }
+  if (section === "watchlist") {
+    return { title: "Watchlist", subtitle: "Movies and shows saved for later", items: watchlistItems, type: "watchlist" };
+  }
+  if (section === "trending") {
+    return { title: "Trending on Mirai OTT", subtitle: "Handpicked originals and exclusives", items: list.length ? list : items, type: "content" };
+  }
+  if (section === "new") {
+    return { title: "Recently added", subtitle: "Fresh drops across movies, series, and courses", items: [...(items || [])].reverse(), type: "content" };
+  }
+  return null;
 }
 
 export default function OttHomeClient({ items = [], view = "all", section = "" }) {
@@ -92,6 +129,8 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [continueItems, setContinueItems] = useState([]);
   const [watchlistItems, setWatchlistItems] = useState([]);
+  const [watchlistBySlug, setWatchlistBySlug] = useState({});
+  const [watchlistBusyBySlug, setWatchlistBusyBySlug] = useState({});
 
   useEffect(() => {
     function sync() {
@@ -143,12 +182,20 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
         ]);
         if (!cancelled) {
           setContinueItems(Array.isArray(continueRows) ? continueRows : []);
-          setWatchlistItems(Array.isArray(watchlist) ? watchlist : []);
+          const watchlistArray = Array.isArray(watchlist) ? watchlist : [];
+          setWatchlistItems(watchlistArray);
+          setWatchlistBySlug(
+            watchlistArray.reduce((acc, item) => {
+              if (item?.slug) acc[item.slug] = true;
+              return acc;
+            }, {})
+          );
         }
       } catch {
         if (!cancelled) {
           setContinueItems([]);
           setWatchlistItems([]);
+          setWatchlistBySlug({});
         }
       }
     }
@@ -161,6 +208,17 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
   const list = useMemo(() => filterByView(items, view), [items, view]);
   const heroList = list.length ? list : items;
   const featured = heroList[heroIndex % heroList.length];
+  const selectedSection = getSectionData(section, { continueItems, watchlistItems, items, list });
+
+  function goToPrevHero() {
+    if (heroList.length <= 1) return;
+    setHeroIndex((i) => (i - 1 + heroList.length) % heroList.length);
+  }
+
+  function goToNextHero() {
+    if (heroList.length <= 1) return;
+    setHeroIndex((i) => (i + 1) % heroList.length);
+  }
 
   useEffect(() => {
     setHeroIndex(0);
@@ -176,11 +234,46 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
 
   useEffect(() => {
     if (!section || typeof document === "undefined") return;
-    const id = section === "continue" ? "continue-watching" : section === "watchlist" ? "watchlist" : "";
+    const id =
+      section === "continue"
+        ? "continue-watching"
+        : section === "watchlist"
+          ? "watchlist"
+          : section === "trending"
+            ? "trending"
+            : section === "new"
+              ? "new"
+              : "";
     if (!id) return;
     const node = document.getElementById(id);
     if (node) node.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [section, continueItems.length, watchlistItems.length]);
+
+  async function toggleWatchlistForSlug(slug) {
+    if (!slug) return;
+    setWatchlistBusyBySlug((prev) => ({ ...prev, [slug]: true }));
+    try {
+      if (watchlistBySlug[slug]) {
+        await apiDeleteAuth(`/api/v1/ott/watchlist/${slug}`);
+        setWatchlistBySlug((prev) => ({ ...prev, [slug]: false }));
+        setWatchlistItems((prev) => prev.filter((item) => item.slug !== slug));
+      } else {
+        await apiPostAuth(`/api/v1/ott/watchlist/${slug}`, {});
+        const content = (items || []).find((item) => item.slug === slug);
+        setWatchlistBySlug((prev) => ({ ...prev, [slug]: true }));
+        if (content) {
+          setWatchlistItems((prev) => (prev.some((item) => item.slug === slug) ? prev : [content, ...prev]));
+        }
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("mirai-watchlist-changed", { detail: { slug } }));
+      }
+    } catch {
+      // Keep UX responsive; OTT player shows full error handling.
+    } finally {
+      setWatchlistBusyBySlug((prev) => ({ ...prev, [slug]: false }));
+    }
+  }
 
   return (
     <div className="relative -mx-6 min-h-screen bg-black text-zinc-100">
@@ -188,7 +281,7 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
 
       {featured ? (
         <div className="relative">
-          <div className="relative h-[min(72vw,420px)] w-full overflow-hidden md:h-[min(52vw,480px)]">
+          <div className="relative h-[min(76vw,500px)] w-full overflow-hidden md:h-[min(56vw,620px)]">
             {featured.posterUrl ? (
               <Image
                 src={featured.posterUrl}
@@ -203,7 +296,7 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-            <div className="relative z-[1] flex h-full max-w-7xl flex-col justify-end px-6 pb-10 pt-24 md:px-10">
+            <div className="relative z-[1] flex h-full max-w-7xl flex-col justify-end px-6 pb-12 pt-24 md:px-10">
               {featured.contentRating ? (
                 <span className="mb-3 w-fit rounded border border-white/20 bg-black/50 px-2 py-0.5 text-xs text-white">{featured.contentRating}</span>
               ) : null}
@@ -233,16 +326,34 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
                 </Link>
               </div>
               {heroList.length > 1 ? (
-                <div className="mt-6 flex gap-1.5">
-                  {heroList.slice(0, 6).map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      aria-label={`Slide ${i + 1}`}
-                      onClick={() => setHeroIndex(i)}
-                      className={`h-1.5 rounded-full transition ${i === heroIndex % heroList.length ? "w-6 bg-white" : "w-2 bg-white/30 hover:bg-white/50"}`}
-                    />
-                  ))}
+                <div className="mt-7 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={goToPrevHero}
+                    aria-label="Previous autoplay card"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/45 text-base font-bold text-white hover:bg-white/20"
+                  >
+                    {"<"}
+                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    {heroList.slice(0, 8).map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Slide ${i + 1}`}
+                        onClick={() => setHeroIndex(i)}
+                        className={`rounded-full transition ${i === heroIndex % heroList.length ? "h-2.5 w-7 bg-white" : "h-2.5 w-2.5 bg-white/35 hover:bg-white/60"}`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={goToNextHero}
+                    aria-label="Next autoplay card"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/45 text-base font-bold text-white hover:bg-white/20"
+                  >
+                    {">"}
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -251,7 +362,52 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
       ) : null}
 
       <div className="relative z-[1] mx-auto max-w-7xl space-y-10 px-6 py-12 md:px-10">
-        <Row id="continue-watching" title="Continue Watching" subtitle="Pick up where you left off">
+        {selectedSection ? (
+          <section className="space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold text-white md:text-3xl">{selectedSection.title}</h2>
+                <p className="text-sm text-zinc-400">{selectedSection.subtitle}</p>
+              </div>
+              <Link href="/ott" className="text-sm text-ottBlue hover:underline">
+                Back to OTT home
+              </Link>
+            </div>
+            {selectedSection.items.length === 0 ? (
+              <div className="rounded-lg border border-white/10 bg-zinc-900/80 p-4 text-sm text-zinc-300">
+                <p>No items found in this category yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {selectedSection.type === "continue"
+                  ? selectedSection.items.map((row) => (
+                      <OttPosterCard
+                        key={row.progressId}
+                        item={row.content}
+                        loggedIn={loggedIn}
+                        metaText={`Resume from ${formatMinutes(row.seconds)} min`}
+                        inWatchlist={Boolean(watchlistBySlug[row.content?.slug])}
+                        watchlistBusy={Boolean(watchlistBusyBySlug[row.content?.slug])}
+                        onToggleWatchlist={toggleWatchlistForSlug}
+                      />
+                    ))
+                  : selectedSection.items.map((item) => (
+                      <OttPosterCard
+                        key={`${selectedSection.type}-${item._id || item.slug}`}
+                        item={item}
+                        loggedIn={loggedIn}
+                        inWatchlist={Boolean(watchlistBySlug[item.slug])}
+                        watchlistBusy={Boolean(watchlistBusyBySlug[item.slug])}
+                        onToggleWatchlist={toggleWatchlistForSlug}
+                      />
+                    ))}
+              </div>
+            )}
+          </section>
+        ) : null}
+        {!selectedSection ? (
+          <>
+            <Row id="continue-watching" title="Continue Watching" subtitle="Pick up where you left off" viewAllHref="/ott?section=continue">
           {continueItems.length > 0 ? (
             continueItems.map((row) => (
               <OttPosterCard
@@ -259,6 +415,9 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
                 item={row.content}
                 loggedIn={loggedIn}
                 metaText={`Resume from ${formatMinutes(row.seconds)} min`}
+                inWatchlist={Boolean(watchlistBySlug[row.content?.slug])}
+                watchlistBusy={Boolean(watchlistBusyBySlug[row.content?.slug])}
+                onToggleWatchlist={toggleWatchlistForSlug}
               />
             ))
           ) : (
@@ -269,11 +428,20 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
               </Link>
             </div>
           )}
-        </Row>
+            </Row>
 
-        <Row id="watchlist" title="Watchlist" subtitle="Movies and shows saved for later">
+            <Row id="watchlist" title="Watchlist" subtitle="Movies and shows saved for later" viewAllHref="/ott?section=watchlist">
           {watchlistItems.length > 0 ? (
-            watchlistItems.map((item) => <OttPosterCard key={`watchlist-${item._id || item.slug}`} item={item} loggedIn={loggedIn} />)
+            watchlistItems.map((item) => (
+              <OttPosterCard
+                key={`watchlist-${item._id || item.slug}`}
+                item={item}
+                loggedIn={loggedIn}
+                inWatchlist={Boolean(watchlistBySlug[item.slug])}
+                watchlistBusy={Boolean(watchlistBusyBySlug[item.slug])}
+                onToggleWatchlist={toggleWatchlistForSlug}
+              />
+            ))
           ) : (
             <div className="rounded-lg border border-white/10 bg-zinc-900/80 p-4 text-sm text-zinc-300">
               <p>Your watchlist is empty.</p>
@@ -282,19 +450,35 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
               </Link>
             </div>
           )}
-        </Row>
+            </Row>
 
-        <Row id="trending" title="Trending on Mirai OTT" subtitle="Handpicked originals and exclusives">
+            <Row id="trending" title="Trending on Mirai OTT" subtitle="Handpicked originals and exclusives" viewAllHref="/ott?section=trending">
           {(list.length ? list : items).map((item) => (
-            <OttPosterCard key={item._id || item.slug} item={item} loggedIn={loggedIn} />
+            <OttPosterCard
+              key={item._id || item.slug}
+              item={item}
+              loggedIn={loggedIn}
+              inWatchlist={Boolean(watchlistBySlug[item.slug])}
+              watchlistBusy={Boolean(watchlistBusyBySlug[item.slug])}
+              onToggleWatchlist={toggleWatchlistForSlug}
+            />
           ))}
-        </Row>
+            </Row>
 
-        <Row id="new" title="Recently added" subtitle="Fresh drops across movies, series, and courses">
+            <Row id="new" title="Recently added" subtitle="Fresh drops across movies, series, and courses" viewAllHref="/ott?section=new">
           {[...(items || [])].reverse().map((item) => (
-            <OttPosterCard key={`recent-${item._id || item.slug}`} item={item} loggedIn={loggedIn} />
+            <OttPosterCard
+              key={`recent-${item._id || item.slug}`}
+              item={item}
+              loggedIn={loggedIn}
+              inWatchlist={Boolean(watchlistBySlug[item.slug])}
+              watchlistBusy={Boolean(watchlistBusyBySlug[item.slug])}
+              onToggleWatchlist={toggleWatchlistForSlug}
+            />
           ))}
-        </Row>
+            </Row>
+          </>
+        ) : null}
       </div>
     </div>
   );

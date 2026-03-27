@@ -1,4 +1,5 @@
 import HeroBanner from "../components/HeroBanner";
+import MovieCardsClient from "../components/MovieCardsClient";
 import { apiGet } from "../lib/api";
 import Link from "next/link";
 
@@ -81,36 +82,8 @@ export default async function HomePage({ searchParams }) {
       </section>
 
       <section className="mb-8">
-        <h2 className="section-title">Latest Movies and Series (Legal Watch)</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-5">
-          {pagedMovies.map((movie) => (
-            <article key={movie._id || movie.slug} className="overflow-hidden rounded-lg bg-brandCard">
-              <Link href={`/movie/${movie.slug}`} className="block">
-                <div className="relative h-64 w-full bg-slate-800">
-                  <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent" />
-                  <div className="absolute bottom-0 p-3">
-                    <p className="text-xs text-slate-300">{movie.releaseDate || "New release"}</p>
-                    <p className="line-clamp-3 text-sm font-semibold text-white">{movie.title}</p>
-                  </div>
-                </div>
-              </Link>
-              <div className="p-3">
-                {(movie.providers || []).slice(0, 1).map((provider) => (
-                  <a
-                    key={`${movie.slug}-${provider.name}`}
-                    href={provider.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block rounded bg-brandAccent px-2 py-1 text-xs"
-                  >
-                    Watch on {provider.name}
-                  </a>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
+        <h2 className="section-title">Latest Movies and Series</h2>
+        <MovieCardsClient movies={pagedMovies} />
       </section>
 
       <section className="mb-8">
