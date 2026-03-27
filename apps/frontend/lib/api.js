@@ -1,6 +1,3 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? "" : "http://localhost:4000");
 import { getMockData } from "./mockData";
 
 function getClientToken() {
@@ -9,9 +6,9 @@ function getClientToken() {
 }
 
 async function apiRequest(path, options = {}) {
-  if (!API_URL) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL in production environment.");
-  }
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (process.env.NODE_ENV === "production" && typeof window !== "undefined" ? window.location.origin : "http://localhost:4000");
 
   const token = options.token || getClientToken();
   const headers = {
@@ -30,7 +27,7 @@ async function apiRequest(path, options = {}) {
     requestOptions.cache = options.cache;
   }
 
-  const res = await fetch(`${API_URL}${path}`, requestOptions);
+  const res = await fetch(`${apiUrl}${path}`, requestOptions);
 
   if (!res.ok) {
     let message = "Request failed";
