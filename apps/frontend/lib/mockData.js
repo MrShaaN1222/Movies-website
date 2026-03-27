@@ -327,17 +327,49 @@ const ottItems = [
     _id: "o1",
     slug: "mirai-original-the-last-signal",
     title: "Mirai Original: The Last Signal",
-    type: "Sci-Fi Series",
+    type: "exclusive",
     description: "A deep-space rescue mystery spanning eight episodes.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
     hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: true,
+    isAdult: false,
+    contentRating: "U/A 13+",
   },
   {
     _id: "o2",
     slug: "mirai-original-shadow-city",
     title: "Mirai Original: Shadow City",
-    type: "Crime Thriller",
+    type: "exclusive",
     description: "A detective drama set in a hyper-connected metropolis.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/b0PlSFdDwbyK0cf5RxwDpaOJQvQ.jpg",
     hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: true,
+    isAdult: true,
+    contentRating: "A 18+",
+  },
+  {
+    _id: "o3",
+    slug: "mirai-spotlight-midnight-run",
+    title: "Mirai Spotlight: Midnight Run",
+    type: "short-film",
+    description: "A kinetic short film about one night that changes everything.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/caQp2MhwlkJ3V9D4Tr5kL5M4u9Y.jpg",
+    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: true,
+    isAdult: false,
+    contentRating: "U",
+  },
+  {
+    _id: "o4",
+    slug: "mirai-masterclass-cinema-lighting",
+    title: "Mirai Masterclass: Cinema Lighting",
+    type: "course",
+    description: "Learn how cinematographers sculpt light for story and mood.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: false,
+    isAdult: false,
+    contentRating: "U",
   },
 ];
 
@@ -398,7 +430,9 @@ export function getMockData(path) {
   }
 
   if (pathname.startsWith("/api/v1/ott/")) {
-    const slug = pathname.replace("/api/v1/ott/", "");
+    const rest = pathname.replace("/api/v1/ott/", "");
+    const slug = rest.split("/")[0];
+    if (!slug || slug === "progress" || rest.includes("playback")) return null;
     return ottItems.find((item) => item.slug === slug) || null;
   }
 

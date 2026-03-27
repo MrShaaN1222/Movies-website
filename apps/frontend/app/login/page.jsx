@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiPost } from "../../lib/api";
 
-export default function LoginPage() {
+function safeReturnUrl(raw) {
+  if (!raw || typeof raw !== "string") return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  return raw;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +30,7 @@ export default function LoginPage() {
       if (!data?.token) throw new Error("Login failed. No token received.");
       window.localStorage.setItem("mirai_token", data.token);
       window.dispatchEvent(new Event("mirai-auth-changed"));
-      router.push("/dashboard");
+      router.push(returnUrl);
     } catch (err) {
       setError(err?.message || "Login failed");
     } finally {
@@ -32,7 +41,7 @@ export default function LoginPage() {
   return (
     <section className="mx-auto max-w-md rounded-xl bg-brandCard p-6">
       <h1 className="mb-2 text-2xl font-bold">Login</h1>
-      <p className="mb-5 text-sm text-slate-300">Sign in to access premium OTT playback and dashboard.</p>
+      <p className="mb-5 text-sm text-slate-300">Sign in to access premium OTT playback and checkout.</p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
@@ -63,10 +72,18 @@ export default function LoginPage() {
 
       <p className="mt-4 text-sm text-slate-300">
         New user?{" "}
-        <Link href="/register" className="text-brandAccent">
+        <Link href={`/register?returnUrl=${encodeURIComponent(returnUrl)}`} className="text-brandAccent">
           Create an account
         </Link>
       </p>
     </section>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md rounded-xl bg-brandCard p-6 text-sm text-slate-400">Loading…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -14,6 +14,8 @@ const ottContentSchema = new mongoose.Schema(
     hlsUrl: String,
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isPremium: { type: Boolean, default: true },
+    isAdult: { type: Boolean, default: false },
+    contentRating: { type: String, default: "" },
   },
   { timestamps: true }
 );

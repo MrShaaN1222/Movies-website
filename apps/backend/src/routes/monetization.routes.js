@@ -2,6 +2,7 @@ import express from "express";
 import crypto from "crypto";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePhoneVerified } from "../middleware/requirePhoneVerified.js";
 import { AdEvent } from "../models/AdEvent.js";
 import { Subscription } from "../models/Subscription.js";
 import { env } from "../config/env.js";
@@ -19,6 +20,7 @@ const adEventSchema = z.object({
 
 const subscriptionIntentSchema = z.object({
   planCode: z.string().min(2),
+  paymentMethod: z.enum(["upi", "card"]).optional(),
   razorpaySubscriptionId: z.string().optional(),
   razorpayCustomerId: z.string().optional(),
 });
@@ -33,11 +35,12 @@ router.post("/ads/events", rateLimit({ windowMs: 60_000, max: 120 }), async (req
 router.post(
   "/subscriptions/intent",
   requireAuth,
+  requirePhoneVerified,
   rateLimit({ windowMs: 60_000, max: 15 }),
   async (req, res) => {
     const parsed = subscriptionIntentSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid subscription payload" });
-    const { planCode } = parsed.data;
+    const { planCode, paymentMethod } = parsed.data;
     const doc = await Subscription.findOneAndUpdate(
       { userId: req.user.sub },
       {
@@ -48,9 +51,11 @@ router.post(
       },
       { upsert: true, new: true }
     );
+    const methodLabel = paymentMethod === "card" ? "Card" : paymentMethod === "upi" ? "UPI" : "default";
     return res.json({
-      message: "Subscription intent stored. Activate payment capture in Phase 2.",
+      message: `Subscription intent stored (${methodLabel}). Payment capture can be activated in Phase 2.`,
       subscription: doc,
+      paymentMethod: paymentMethod || null,
     });
   }
 );

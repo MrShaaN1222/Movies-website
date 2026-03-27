@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiPost } from "../../lib/api";
 
-export default function RegisterPage() {
+function safeReturnUrl(raw) {
+  if (!raw || typeof raw !== "string") return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  return raw;
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +31,7 @@ export default function RegisterPage() {
       const loginData = await apiPost("/api/v1/auth/login", { email, password });
       if (loginData?.token) window.localStorage.setItem("mirai_token", loginData.token);
       window.dispatchEvent(new Event("mirai-auth-changed"));
-      router.push("/dashboard");
+      router.push(returnUrl);
     } catch (err) {
       setError(err?.message || "Registration failed");
     } finally {
@@ -73,10 +82,18 @@ export default function RegisterPage() {
 
       <p className="mt-4 text-sm text-slate-300">
         Already have an account?{" "}
-        <Link href="/login" className="text-brandAccent">
+        <Link href={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} className="text-brandAccent">
           Login
         </Link>
       </p>
     </section>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md rounded-xl bg-brandCard p-6 text-sm text-slate-400">Loading…</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

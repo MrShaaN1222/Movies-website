@@ -22,6 +22,8 @@ const createContentSchema = z.object({
   posterUrl: z.string().url().optional(),
   hlsUrl: z.string().url().optional(),
   isPremium: z.boolean().optional(),
+  isAdult: z.boolean().optional(),
+  contentRating: z.string().optional(),
 });
 
 const uploadIntentSchema = z.object({

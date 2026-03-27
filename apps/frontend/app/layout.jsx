@@ -1,5 +1,6 @@
 import "./globals.css";
 import Link from "next/link";
+import { Suspense } from "react";
 import NewsletterBox from "../components/NewsletterBox";
 import NavMenu from "../components/NavMenu";
 import AuthActions from "../components/AuthActions";
@@ -10,7 +11,16 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const navItems = [{ href: "/", label: "Home" }, { href: "/search?q=telugu", label: "Telugu" }, { href: "/search?q=tamil", label: "Tamil" }];
+  const navItems = [
+    { href: "/", label: "Home" },
+    { href: "/ott", label: "OTT" },
+    { href: "/ott?view=shows", label: "Shows" },
+    { href: "/ott?view=movies", label: "Movies" },
+    { href: "/ott?view=new", label: "New" },
+    { href: "/free-movies", label: "Trailers" },
+    { href: "/search?q=telugu", label: "Telugu" },
+    { href: "/search?q=tamil", label: "Tamil" },
+  ];
   const dropdownMenus = [
     {
       label: "Bollywood",
@@ -69,6 +79,15 @@ export default function RootLayout({ children }) {
                 Mirai Movies AI
               </Link>
               <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+                <Link
+                  href="/subscription"
+                  className="hidden shrink-0 items-center gap-2 rounded-md border border-mxGold/70 bg-gradient-to-r from-mxGold/15 to-yellow-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-mxGold shadow-[0_0_0_1px_rgba(212,164,23,0.35)_inset] sm:inline-flex"
+                >
+                  <span aria-hidden className="text-sm leading-none">
+                    ◆
+                  </span>
+                  Join Mirai Gold
+                </Link>
                 <form action="/search" method="get" className="w-full md:w-auto">
                   <input
                     type="text"
@@ -80,7 +99,9 @@ export default function RootLayout({ children }) {
                 <AuthActions />
               </div>
             </div>
-            <NavMenu navItems={navItems} dropdownMenus={dropdownMenus} yearOptions={yearOptions} />
+            <Suspense fallback={<div className="h-9 animate-pulse rounded-full bg-slate-900/80" aria-hidden />}>
+              <NavMenu navItems={navItems} dropdownMenus={dropdownMenus} yearOptions={yearOptions} />
+            </Suspense>
           </nav>
         </header>
         <main className="mx-auto min-h-screen max-w-7xl px-6 py-8">{children}</main>

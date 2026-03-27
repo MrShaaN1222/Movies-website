@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema(
     watchlist: [{ type: String }],
     favorites: [{ type: String }],
     subscriptionPlan: { type: String, default: "free" },
+    phone: { type: String, default: "", trim: true },
+    phoneVerified: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );
