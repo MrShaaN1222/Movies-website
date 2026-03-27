@@ -15,10 +15,41 @@ import monetizationRoutes from "./routes/monetization.routes.js";
 import newsletterRoutes from "./routes/newsletter.routes.js";
 import { env } from "./config/env.js";
 
+function getAllowedOrigins() {
+  const configured = (env.FRONTEND_URLS || env.FRONTEND_URL || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (env.NODE_ENV !== "production") {
+    configured.push("http://localhost:3000", "http://127.0.0.1:3000");
+  }
+
+  return new Set(configured);
+}
+
+function isPrivateNetworkDevOrigin(origin) {
+  return /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}):3000$/.test(
+    origin
+  );
+}
+
 export function createApp() {
   const app = express();
+  const allowedOrigins = getAllowedOrigins();
   app.use(helmet());
-  app.use(cors({ origin: env.FRONTEND_URL }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.has(origin)) return callback(null, true);
+        if (env.NODE_ENV !== "production" && isPrivateNetworkDevOrigin(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error("Origin not allowed by CORS"));
+      },
+    })
+  );
   app.use(
     express.json({
       limit: "10mb",

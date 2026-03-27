@@ -17,8 +17,11 @@ export const env = {
   TMDB_API_KEY: process.env.TMDB_API_KEY || "",
   YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY || "",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
+  FRONTEND_URLS: process.env.FRONTEND_URLS || "",
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "",
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "",
   RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || "",
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
   PLAYBACK_SIGNING_SECRET: process.env.PLAYBACK_SIGNING_SECRET || "",
 };

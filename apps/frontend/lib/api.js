@@ -29,14 +29,17 @@ async function apiRequest(path, options = {}) {
   if (!res.ok) {
     let message = "Request failed";
     let code;
+    let amountInr;
     try {
       const error = await res.json();
       message = error?.message || message;
       code = error?.code;
+      if (error?.amountInr != null) amountInr = error.amountInr;
     } catch {}
     const err = new Error(message);
     err.status = res.status;
     if (code) err.code = code;
+    if (amountInr != null) err.amountInr = amountInr;
     throw err;
   }
 

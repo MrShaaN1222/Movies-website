@@ -8,6 +8,8 @@ const subscriptionSchema = new mongoose.Schema(
     status: { type: String, enum: ["inactive", "active", "past_due", "cancelled"], default: "inactive" },
     razorpayCustomerId: String,
     razorpaySubscriptionId: String,
+    razorpayOrderId: String,
+    razorpayPaymentId: String,
     currentPeriodEnd: Date,
   },
   { timestamps: true }

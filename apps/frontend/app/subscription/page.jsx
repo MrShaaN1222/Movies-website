@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGetAuth, apiPostAuth } from "../../lib/api";
 
@@ -31,6 +31,8 @@ function SubscriptionFlow() {
 
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
+  const [phoneGateOpen, setPhoneGateOpen] = useState(false);
+  const otpSectionRef = useRef(null);
 
   const loggedIn = hasToken();
   const phoneVerified = Boolean(profile?.phoneVerified);
@@ -70,6 +72,19 @@ function SubscriptionFlow() {
       cancelled = true;
     };
   }, [loggedIn]);
+
+  useEffect(() => {
+    if (!nextAfterVerify || !hasToken() || !profileReady || !profile) return;
+    if (!profile.phoneVerified) setPhoneGateOpen(true);
+  }, [nextAfterVerify, profileReady, profile]);
+
+  useEffect(() => {
+    if (!phoneGateOpen) return;
+    const id = requestAnimationFrame(() => {
+      otpSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [phoneGateOpen]);
 
   const planCode = plan === "annual" ? "premium-yearly" : "premium-monthly";
   const purchaseHref = `/purchase?plan=${encodeURIComponent(planCode)}&method=${encodeURIComponent(payMethod)}`;
@@ -116,14 +131,14 @@ function SubscriptionFlow() {
     router.push(`/login?returnUrl=${encodeURIComponent("/subscription")}`);
   }
 
-  async function continueToCheckout() {
+  function onJoinMiraiGold() {
     setPhoneMsg("");
     if (!hasToken()) {
       goLogin();
       return;
     }
     if (!phoneVerified) {
-      setPhoneMsg("Verify your mobile number below, then continue.");
+      setPhoneGateOpen(true);
       return;
     }
     setCheckoutBusy(true);
@@ -182,14 +197,20 @@ function SubscriptionFlow() {
               ))}
             </div>
           </div>
-          <p className="mt-6 font-serif text-2xl leading-snug text-mxGold md:text-3xl">Watch with fewer interruptions.</p>
-          <p className="mt-2 text-sm text-zinc-400">Full HD streaming · Ad-light experience · Offline downloads where available</p>
+          {!hasToken() ? (
+            <>
+              <p className="mt-6 font-serif text-2xl leading-snug text-mxGold md:text-3xl">Watch with fewer interruptions.</p>
+              <p className="mt-2 text-sm text-zinc-400">Full HD streaming · Ad-light experience · Offline downloads where available</p>
 
-          <ol className="mt-8 space-y-2 text-sm text-zinc-400">
-            <li className={hasToken() ? "text-emerald-400/90" : ""}>1. Sign in to your Mirai account</li>
-            <li className={profileReady && phoneVerified ? "text-emerald-400/90" : ""}>2. Verify your mobile number (OTP)</li>
-            <li>3. Confirm plan and pay on the secure checkout page</li>
-          </ol>
+              <ol className="mt-8 space-y-2 text-sm text-zinc-400">
+                <li className={hasToken() ? "text-emerald-400/90" : ""}>1. Sign in to your Mirai account</li>
+                <li className={profileReady && phoneVerified ? "text-emerald-400/90" : ""}>2. Tap Join Mirai Gold, then verify mobile (OTP)</li>
+                <li>3. Confirm plan and pay on the secure checkout page</li>
+              </ol>
+            </>
+          ) : (
+            <p className="mt-6 text-sm text-zinc-500">Choose your plan and payment method, then tap Join Mirai Gold to continue.</p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-mxGold/40 bg-zinc-950/80 p-5 shadow-[0_0_0_1px_rgba(212,164,23,0.12)_inset] md:p-7">
@@ -208,48 +229,6 @@ function SubscriptionFlow() {
               >
                 Sign in to continue
               </button>
-            </div>
-          ) : null}
-
-          {hasToken() && profileReady && profile && !phoneVerified ? (
-            <div className="mb-6 rounded-xl border border-mxGold/40 bg-black/50 p-4">
-              <h3 className="text-sm font-semibold text-mxGold">Verify mobile number</h3>
-              <p className="mt-1 text-xs text-zinc-500">We send a one-time code. In development the API may return a dev OTP for testing.</p>
-              <input
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="10-digit mobile number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-3 w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-mxGold"
-              />
-              <button
-                type="button"
-                disabled={phoneBusy}
-                onClick={requestOtp}
-                className="mt-2 w-full rounded-lg border border-mxGold/50 bg-mxGold/10 py-2 text-sm font-semibold text-mxGold disabled:opacity-50"
-              >
-                {phoneBusy ? "Sending…" : "Send OTP"}
-              </button>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="Enter OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="mt-3 w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-mxGold"
-              />
-              <button
-                type="button"
-                disabled={phoneBusy}
-                onClick={verifyOtp}
-                className="mt-2 w-full rounded-lg bg-mxGold py-2 text-sm font-bold text-black disabled:opacity-50"
-              >
-                {phoneBusy ? "Checking…" : "Verify & continue"}
-              </button>
-              {phoneMsg ? <p className="mt-3 text-xs text-zinc-300">{phoneMsg}</p> : null}
-              {otpHint ? <p className="mt-1 text-xs font-mono text-yellow-200/90">{otpHint}</p> : null}
             </div>
           ) : null}
 
@@ -317,7 +296,7 @@ function SubscriptionFlow() {
           </button>
 
           <h3 className="mb-3 mt-8 text-sm font-semibold text-white">Select payment method</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => setPayMethod("upi")}
@@ -337,6 +316,16 @@ function SubscriptionFlow() {
             >
               Card
               {payMethod === "card" ? <span className="text-mxGold">✓</span> : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayMethod("stripe")}
+              className={`flex items-center justify-center gap-2 rounded-xl border-2 py-3 text-sm font-medium transition ${
+                payMethod === "stripe" ? "border-mxGold bg-mxGold/10 text-white" : "border-white/10 bg-black/40 text-zinc-300"
+              }`}
+            >
+              Stripe
+              {payMethod === "stripe" ? <span className="text-mxGold">✓</span> : null}
             </button>
           </div>
 
@@ -359,21 +348,70 @@ function SubscriptionFlow() {
           <button
             type="button"
             disabled={checkoutBusy}
-            onClick={continueToCheckout}
+            onClick={onJoinMiraiGold}
             className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-mxGold to-yellow-500 py-3.5 text-center text-base font-bold text-black shadow-lg shadow-mxGold/20 transition hover:brightness-105 disabled:opacity-60"
           >
             join mirai gold
           </button>
-          {!phoneVerified && hasToken() ? (
-            <p className="mt-2 text-center text-[11px] text-zinc-500">Checkout opens after your mobile number is verified.</p>
+          {!phoneVerified && hasToken() && !phoneGateOpen ? (
+            <p className="mt-2 text-center text-[11px] text-zinc-500">Tap Join to verify your mobile number, then you&apos;ll go to checkout.</p>
+          ) : null}
+          {hasToken() && profileReady && profile && !phoneVerified && phoneGateOpen ? (
+            <div ref={otpSectionRef} className="mt-6 rounded-xl border border-mxGold/40 bg-black/50 p-4">
+              <h3 className="text-sm font-semibold text-mxGold">Verify mobile number</h3>
+              <p className="mt-1 text-xs text-zinc-500">We send a one-time code. In development the API may return a dev OTP for testing.</p>
+              <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-mxGold"
+              />
+              <button
+                type="button"
+                disabled={phoneBusy}
+                onClick={requestOtp}
+                className="mt-2 w-full rounded-lg border border-mxGold/50 bg-mxGold/10 py-2 text-sm font-semibold text-mxGold disabled:opacity-50"
+              >
+                {phoneBusy ? "Sending…" : "Send OTP"}
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-mxGold"
+              />
+              <button
+                type="button"
+                disabled={phoneBusy}
+                onClick={verifyOtp}
+                className="mt-2 w-full rounded-lg bg-mxGold py-2 text-sm font-bold text-black disabled:opacity-50"
+              >
+                {phoneBusy ? "Checking…" : "Verify & continue"}
+              </button>
+              {phoneMsg ? <p className="mt-3 text-xs text-zinc-300">{phoneMsg}</p> : null}
+              {otpHint ? <p className="mt-1 text-xs font-mono text-yellow-200/90">{otpHint}</p> : null}
+            </div>
           ) : null}
 
-          <p className="mt-5 text-center text-sm text-zinc-400">
-            Already a member?{" "}
-            <Link href="/login" className="font-medium text-ottBlue hover:underline">
-              Login
-            </Link>
-          </p>
+          {!hasToken() ? (
+            <p className="mt-5 text-center text-sm text-zinc-400">
+              Already have an account?{" "}
+              <Link href="/login" className="font-medium text-ottBlue hover:underline">
+                Sign in
+              </Link>
+            </p>
+          ) : (
+            <p className="mt-5 text-center text-sm text-zinc-500">
+              <Link href="/ott" className="font-medium text-ottBlue hover:underline">
+                Back to Mirai OTT
+              </Link>
+            </p>
+          )}
 
           {subscription.status === "active" ? (
             <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-950/25 p-4 text-sm text-emerald-100">
@@ -392,9 +430,15 @@ function SubscriptionFlow() {
             </div>
           ) : null}
 
-          <p className="mt-8 text-[10px] leading-relaxed text-zinc-600">
-            Recurring billing until cancelled. By continuing you agree to our terms. Mirai Gold availability and pricing may vary by region.
-          </p>
+          {!hasToken() ? (
+            <p className="mt-8 text-[10px] leading-relaxed text-zinc-600">
+              Recurring billing until cancelled. By continuing you agree to our terms. Mirai Gold availability and pricing may vary by region.
+            </p>
+          ) : (
+            <p className="mt-8 text-[10px] leading-relaxed text-zinc-600">
+              By joining Mirai Gold you agree to our terms. Subscriptions renew until cancelled; pricing may vary by region.
+            </p>
+          )}
         </div>
       </div>
     </div>

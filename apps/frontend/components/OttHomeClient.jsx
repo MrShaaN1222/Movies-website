@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+const HERO_AUTOPLAY_MS = 7000;
+
 const PREMIUM_BADGE = "/ott/premium-gold-bucket.png";
 const SIGNIN_BADGE = "/ott/signin-to-watch.png";
 
@@ -99,6 +101,14 @@ export default function OttHomeClient({ items = [], view = "all" }) {
   useEffect(() => {
     setHeroIndex(0);
   }, [view, list.length]);
+
+  useEffect(() => {
+    if (heroList.length <= 1) return;
+    const id = window.setInterval(() => {
+      setHeroIndex((i) => (i + 1) % heroList.length);
+    }, HERO_AUTOPLAY_MS);
+    return () => window.clearInterval(id);
+  }, [heroList.length]);
 
   return (
     <div className="relative -mx-6 min-h-screen bg-black text-zinc-100">
