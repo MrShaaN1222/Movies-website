@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { apiGetAuth } from "../lib/api";
 
 const HERO_AUTOPLAY_MS = 7000;
 
@@ -80,6 +81,7 @@ function Row({ title, subtitle, children, id }) {
 export default function OttHomeClient({ items = [], view = "all" }) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   useEffect(() => {
     function sync() {
@@ -93,6 +95,26 @@ export default function OttHomeClient({ items = [], view = "all" }) {
       window.removeEventListener("mirai-auth-changed", sync);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSubscriptionStatus() {
+      if (!loggedIn) {
+        if (!cancelled) setHasActiveSubscription(false);
+        return;
+      }
+      try {
+        const data = await apiGetAuth("/api/v1/monetization/subscriptions/me");
+        if (!cancelled) setHasActiveSubscription(data?.status === "active");
+      } catch {
+        if (!cancelled) setHasActiveSubscription(false);
+      }
+    }
+    loadSubscriptionStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
 
   const list = useMemo(() => filterByView(items, view), [items, view]);
   const heroList = list.length ? list : items;
@@ -157,7 +179,7 @@ export default function OttHomeClient({ items = [], view = "all" }) {
                   More info
                 </Link>
                 <Link href="/subscription" className="text-sm text-mxGold underline-offset-4 hover:underline">
-                  Upgrade to premium
+                  {hasActiveSubscription ? "Manage subscription" : "Upgrade to premium"}
                 </Link>
               </div>
               {heroList.length > 1 ? (

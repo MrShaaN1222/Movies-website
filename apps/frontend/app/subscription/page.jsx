@@ -88,6 +88,19 @@ function SubscriptionFlow() {
 
   const planCode = plan === "annual" ? "premium-yearly" : "premium-monthly";
   const purchaseHref = `/purchase?plan=${encodeURIComponent(planCode)}&method=${encodeURIComponent(payMethod)}`;
+  const isActive = subscription.status === "active";
+  const currentPlanLabel =
+    subscription.planCode === "premium-yearly"
+      ? "Annual"
+      : subscription.planCode === "premium-monthly"
+        ? "Monthly"
+        : subscription.planCode || "Unknown";
+
+  useEffect(() => {
+    if (!isActive) return;
+    if (subscription.planCode === "premium-yearly") setPlan("annual");
+    if (subscription.planCode === "premium-monthly") setPlan("monthly");
+  }, [isActive, subscription.planCode]);
 
   async function requestOtp() {
     setPhoneMsg("");
@@ -209,7 +222,11 @@ function SubscriptionFlow() {
               </ol>
             </>
           ) : (
-            <p className="mt-6 text-sm text-zinc-500">Choose your plan and payment method, then tap Join Mirai Gold to continue.</p>
+            <p className="mt-6 text-sm text-zinc-500">
+              {isActive
+                ? "Your Mirai Gold plan is active. You can upgrade or switch plans anytime."
+                : "Choose your plan and payment method, then tap Join Mirai Gold to continue."}
+            </p>
           )}
         </div>
 
@@ -244,10 +261,17 @@ function SubscriptionFlow() {
 
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">Choose your plan</h2>
-            {subscription.status === "active" ? (
+            {isActive ? (
               <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-300">Active</span>
             ) : null}
           </div>
+
+          {isActive ? (
+            <div className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200">
+              Current plan: <span className="font-medium text-white">{currentPlanLabel}</span> ({subscription.planCode}) via{" "}
+              <span className="font-medium text-white">{subscription.provider || "payment gateway"}</span>
+            </div>
+          ) : null}
 
           <button
             type="button"
@@ -351,7 +375,7 @@ function SubscriptionFlow() {
             onClick={onJoinMiraiGold}
             className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-mxGold to-yellow-500 py-3.5 text-center text-base font-bold text-black shadow-lg shadow-mxGold/20 transition hover:brightness-105 disabled:opacity-60"
           >
-            join mirai gold
+            {isActive ? "upgrade / change plan" : "join mirai gold"}
           </button>
           {!phoneVerified && hasToken() && !phoneGateOpen ? (
             <p className="mt-2 text-center text-[11px] text-zinc-500">Tap Join to verify your mobile number, then you&apos;ll go to checkout.</p>
@@ -413,7 +437,7 @@ function SubscriptionFlow() {
             </p>
           )}
 
-          {subscription.status === "active" ? (
+          {isActive ? (
             <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-950/25 p-4 text-sm text-emerald-100">
               <p>
                 Your subscription is <strong className="text-white">{subscription.status}</strong>
