@@ -178,7 +178,7 @@ export default function OttHomeClient({ items = [], view = "all" }) {
                 >
                   More info
                 </Link>
-                <Link href="/subscription" className="text-sm text-mxGold underline-offset-4 hover:underline">
+                <Link href={hasActiveSubscription ? "/subscription/manage" : "/subscription"} className="text-sm text-mxGold underline-offset-4 hover:underline">
                   {hasActiveSubscription ? "Manage subscription" : "Upgrade to premium"}
                 </Link>
               </div>

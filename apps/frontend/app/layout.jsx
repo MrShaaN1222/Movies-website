@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import NewsletterBox from "../components/NewsletterBox";
 import NavMenu from "../components/NavMenu";
 import AuthActions from "../components/AuthActions";
+import GoldNavButton from "../components/GoldNavButton";
 
 export const metadata = {
   title: "Mirai Movies AI",
@@ -79,15 +80,7 @@ export default function RootLayout({ children }) {
                 Mirai Movies AI
               </Link>
               <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
-                <Link
-                  href="/subscription"
-                  className="hidden shrink-0 items-center gap-2 rounded-md border border-mxGold/70 bg-gradient-to-r from-mxGold/15 to-yellow-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-mxGold shadow-[0_0_0_1px_rgba(212,164,23,0.35)_inset] sm:inline-flex"
-                >
-                  <span aria-hidden className="text-sm leading-none">
-                    ◆
-                  </span>
-                  Join Mirai Gold
-                </Link>
+                <GoldNavButton />
                 <form action="/search" method="get" className="w-full md:w-auto">
                   <input
                     type="text"

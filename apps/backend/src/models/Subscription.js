@@ -10,7 +10,12 @@ const subscriptionSchema = new mongoose.Schema(
     razorpaySubscriptionId: String,
     razorpayOrderId: String,
     razorpayPaymentId: String,
+    planStartedAt: Date,
     currentPeriodEnd: Date,
+    previousPlanCode: String,
+    previousProvider: String,
+    previousStatus: String,
+    previousPeriodEnd: Date,
   },
   { timestamps: true }
 );

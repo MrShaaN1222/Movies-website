@@ -1,11 +1,49 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGetAuth, apiPostAuth } from "../../lib/api";
 
 const EMPTY_SUBSCRIPTION = { status: "inactive", planCode: null, provider: "razorpay" };
+const PLAN_DETAILS = {
+  annual: {
+    code: "premium-yearly",
+    title: "Mirai Gold Yearly",
+    price: "₹499 / year",
+    perDay: "~₹1.4 / day",
+    tag: "Best value",
+    benefits: [
+      "Ad-light premium streaming",
+      "Offline downloads where available",
+      "Full HD playback on supported titles",
+      "Early access to select new drops",
+      "Priority customer support",
+    ],
+    extraBenefits: ["Save more compared to monthly", "Long-term uninterrupted access"],
+  },
+  monthly: {
+    code: "premium-monthly",
+    title: "Mirai Gold Monthly",
+    price: "₹99 / month",
+    perDay: "~₹3.3 / day",
+    tag: "Flexible",
+    benefits: [
+      "Ad-light premium streaming",
+      "Offline downloads where available",
+      "Full HD playback on supported titles",
+      "Cancel anytime flexibility",
+    ],
+    extraBenefits: ["Try premium with a lower upfront cost"],
+  },
+};
+const GOLD_SHOWCASE_IMAGES = [
+  { src: "/ott/premium-gold-bucket.png", alt: "Mirai Gold premium content" },
+  { src: "/ott/signin-to-watch.png", alt: "Sign in to watch premium titles" },
+  { src: "/ott/premium-gold-bucket.png", alt: "Mirai Gold featured premium lineup" },
+  { src: "/ott/signin-to-watch.png", alt: "Mirai Gold premium badge" },
+];
 
 function hasToken() {
   return typeof window !== "undefined" && Boolean(window.localStorage.getItem("mirai_token"));
@@ -95,6 +133,7 @@ function SubscriptionFlow() {
       : subscription.planCode === "premium-monthly"
         ? "Monthly"
         : subscription.planCode || "Unknown";
+  const selectedPlanDetails = plan === "annual" ? PLAN_DETAILS.annual : PLAN_DETAILS.monthly;
 
   useEffect(() => {
     if (!isActive) return;
@@ -205,8 +244,19 @@ function SubscriptionFlow() {
           </div>
           <div className="overflow-hidden rounded-2xl ring-2 ring-mxGold/35 shadow-[0_0_60px_-20px_rgba(212,164,23,0.45)]">
             <div className="grid grid-cols-2 gap-1 bg-black p-1">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="aspect-[3/4] rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-950" />
+              {GOLD_SHOWCASE_IMAGES.map((card, i) => (
+                <div key={`${card.src}-${i}`} className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-zinc-900">
+                  <Image
+                    src={card.src}
+                    alt={card.alt}
+                    fill
+                    sizes="(max-width: 768px) 45vw, 220px"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <span className="absolute left-2 top-2 rounded bg-mxGold/90 px-1.5 py-0.5 text-[10px] font-bold text-black">GOLD</span>
+                </div>
               ))}
             </div>
           </div>
@@ -266,6 +316,17 @@ function SubscriptionFlow() {
             ) : null}
           </div>
 
+          <div className="mb-5 rounded-xl border border-white/10 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Selected plan highlights</p>
+            <p className="mt-1 text-base font-semibold text-white">{selectedPlanDetails.title}</p>
+            <p className="mt-1 text-sm text-mxGold">{selectedPlanDetails.price}</p>
+            <ul className="mt-3 space-y-1.5 text-xs text-zinc-300">
+              {selectedPlanDetails.benefits.slice(0, 3).map((benefit) => (
+                <li key={benefit}>• {benefit}</li>
+              ))}
+            </ul>
+          </div>
+
           {isActive ? (
             <div className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200">
               Current plan: <span className="font-medium text-white">{currentPlanLabel}</span> ({subscription.planCode}) via{" "}
@@ -278,15 +339,15 @@ function SubscriptionFlow() {
             onClick={() => setPlan("annual")}
             className={`relative mt-3 w-full rounded-xl border-2 p-4 text-left transition ${plan === "annual" ? "border-mxGold bg-mxGold/10" : "border-white/10 bg-black/40 hover:border-white/20"}`}
           >
-            <span className="absolute left-3 top-3 rounded bg-mxGold px-2 py-0.5 text-[10px] font-bold text-black">Best value</span>
+            <span className="absolute left-3 top-3 rounded bg-mxGold px-2 py-0.5 text-[10px] font-bold text-black">{PLAN_DETAILS.annual.tag}</span>
             <div className="mt-6 flex items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-white">Annual</p>
-                <p className="text-xs text-zinc-500">Maps to checkout: plan premium-yearly</p>
+                <p className="font-semibold text-white">{PLAN_DETAILS.annual.title}</p>
+                <p className="text-xs text-zinc-500">Maps to checkout: plan {PLAN_DETAILS.annual.code}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-mxGold">₹499 / year</p>
-                <p className="text-[11px] text-zinc-500">~₹1.4 / day</p>
+                <p className="text-lg font-bold text-mxGold">{PLAN_DETAILS.annual.price}</p>
+                <p className="text-[11px] text-zinc-500">{PLAN_DETAILS.annual.perDay}</p>
               </div>
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${plan === "annual" ? "border-mxGold bg-mxGold" : "border-zinc-600"}`}
@@ -295,6 +356,11 @@ function SubscriptionFlow() {
                 {plan === "annual" ? <span className="h-2 w-2 rounded-full bg-black" /> : null}
               </span>
             </div>
+            <ul className="mt-3 space-y-1 text-xs text-zinc-300">
+              {PLAN_DETAILS.annual.extraBenefits.map((extra) => (
+                <li key={extra}>• {extra}</li>
+              ))}
+            </ul>
           </button>
 
           <button
@@ -304,11 +370,12 @@ function SubscriptionFlow() {
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-white">Monthly</p>
-                <p className="text-xs text-zinc-500">Maps to checkout: plan premium-monthly</p>
+                <p className="font-semibold text-white">{PLAN_DETAILS.monthly.title}</p>
+                <p className="text-xs text-zinc-500">Maps to checkout: plan {PLAN_DETAILS.monthly.code}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-white">₹99 / month</p>
+                <p className="text-lg font-bold text-white">{PLAN_DETAILS.monthly.price}</p>
+                <p className="text-[11px] text-zinc-500">{PLAN_DETAILS.monthly.perDay}</p>
               </div>
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${plan === "monthly" ? "border-mxGold bg-mxGold" : "border-zinc-600"}`}
@@ -317,7 +384,33 @@ function SubscriptionFlow() {
                 {plan === "monthly" ? <span className="h-2 w-2 rounded-full bg-black" /> : null}
               </span>
             </div>
+            <ul className="mt-3 space-y-1 text-xs text-zinc-300">
+              {PLAN_DETAILS.monthly.extraBenefits.map((extra) => (
+                <li key={extra}>• {extra}</li>
+              ))}
+            </ul>
           </button>
+
+          <div className="mt-5 overflow-hidden rounded-xl border border-white/10">
+            <div className="grid grid-cols-3 bg-zinc-900/80 text-xs font-semibold text-zinc-300">
+              <div className="border-r border-white/10 px-3 py-2">Feature</div>
+              <div className="border-r border-white/10 px-3 py-2 text-center">Monthly</div>
+              <div className="px-3 py-2 text-center">Yearly</div>
+            </div>
+            {[
+              ["Ad-light premium streaming", "Yes", "Yes"],
+              ["Offline downloads", "Yes", "Yes"],
+              ["Full HD playback", "Yes", "Yes"],
+              ["Early access drops", "Limited", "Priority"],
+              ["Savings", "Standard", "Higher savings"],
+            ].map(([feature, monthlyValue, yearlyValue]) => (
+              <div key={feature} className="grid grid-cols-3 border-t border-white/10 bg-black/35 text-xs text-zinc-300">
+                <div className="border-r border-white/10 px-3 py-2">{feature}</div>
+                <div className="border-r border-white/10 px-3 py-2 text-center">{monthlyValue}</div>
+                <div className="px-3 py-2 text-center">{yearlyValue}</div>
+              </div>
+            ))}
+          </div>
 
           <h3 className="mb-3 mt-8 text-sm font-semibold text-white">Select payment method</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -450,6 +543,9 @@ function SubscriptionFlow() {
               </p>
               <Link href="/dashboard" className="mt-3 inline-block text-xs font-semibold text-ottBlue hover:underline">
                 Go to dashboard
+              </Link>
+              <Link href="/subscription/manage" className="ml-4 mt-3 inline-block text-xs font-semibold text-mxGold hover:underline">
+                View full plan details
               </Link>
             </div>
           ) : null}

@@ -23,6 +23,35 @@ const PLAN_PRICES_INR = {
   "premium-yearly": 499,
 };
 
+const PLAN_DURATIONS_DAYS = {
+  "premium-monthly": 30,
+  "premium-yearly": 365,
+};
+
+function addDays(date, days) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function inferPeriodEnd(subscription) {
+  if (!subscription) return undefined;
+  if (subscription.currentPeriodEnd) return subscription.currentPeriodEnd;
+  const duration = PLAN_DURATIONS_DAYS[subscription.planCode];
+  if (!duration) return undefined;
+  const start = subscription.planStartedAt || subscription.updatedAt || subscription.createdAt;
+  if (!start) return undefined;
+  return addDays(new Date(start), duration);
+}
+
+function buildPlanHistoryPatch(existing, nextPlanCode) {
+  if (!existing?.planCode || existing.planCode === nextPlanCode) return {};
+  return {
+    previousPlanCode: existing.planCode,
+    previousProvider: existing.provider || undefined,
+    previousStatus: existing.status === "active" ? "replaced" : existing.status || undefined,
+    previousPeriodEnd: inferPeriodEnd(existing),
+  };
+}
+
 const adEventSchema = z.object({
   eventType: z.string().min(2),
   placement: z.string().optional(),
@@ -54,9 +83,11 @@ router.post(
     const parsed = subscriptionIntentSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid subscription payload" });
     const { planCode, paymentMethod } = parsed.data;
+    const existing = await Subscription.findOne({ userId: req.user.sub });
     const doc = await Subscription.findOneAndUpdate(
       { userId: req.user.sub },
       {
+        ...buildPlanHistoryPatch(existing, planCode),
         planCode,
         provider: "razorpay",
         razorpaySubscriptionId: parsed.data.razorpaySubscriptionId,
@@ -222,12 +253,18 @@ router.get(
       return res.json({ paid: false, status: session.payment_status || "unpaid", planCode });
     }
 
+    const existing = await Subscription.findOne({ userId: req.user.sub });
+    const startedAt = new Date();
+    const currentPeriodEnd = addDays(startedAt, PLAN_DURATIONS_DAYS[planCode] || 30);
     const doc = await Subscription.findOneAndUpdate(
       { userId: req.user.sub },
       {
+        ...buildPlanHistoryPatch(existing, planCode),
         planCode,
         provider: "stripe",
         status: "active",
+        planStartedAt: startedAt,
+        currentPeriodEnd,
       },
       { upsert: true, new: true }
     );
@@ -274,14 +311,20 @@ router.post(
       return res.status(400).json({ message: "Invalid payment signature" });
     }
 
+    const existing = await Subscription.findOne({ userId: req.user.sub });
+    const startedAt = new Date();
+    const currentPeriodEnd = addDays(startedAt, PLAN_DURATIONS_DAYS[planCode] || 30);
     const doc = await Subscription.findOneAndUpdate(
       { userId: req.user.sub },
       {
+        ...buildPlanHistoryPatch(existing, planCode),
         planCode,
         provider: "razorpay",
         status: "active",
         razorpayOrderId: razorpay_order_id,
         razorpayPaymentId: razorpay_payment_id,
+        planStartedAt: startedAt,
+        currentPeriodEnd,
       },
       { upsert: true, new: true }
     );
