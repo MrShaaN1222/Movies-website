@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production" ? "" : "http://localhost:4000");
 import { getMockData } from "./mockData";
 
 function getClientToken() {
@@ -7,6 +9,10 @@ function getClientToken() {
 }
 
 async function apiRequest(path, options = {}) {
+  if (!API_URL) {
+    throw new Error("Missing NEXT_PUBLIC_API_URL in production environment.");
+  }
+
   const token = options.token || getClientToken();
   const headers = {
     "Content-Type": "application/json",
