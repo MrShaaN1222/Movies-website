@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { requirePremium } from "../middleware/entitlement.js";
 import { OttContent } from "../models/OttContent.js";
+import { User } from "../models/User.js";
 import { WatchProgress } from "../models/WatchProgress.js";
 import {
   createSignedPlaybackUrl,
@@ -40,9 +41,54 @@ const progressSchema = z.object({
   deviceId: z.string().min(2).optional().default("web"),
 });
 
+async function loadWatchlistItems(userId) {
+  const user = await User.findById(userId).select("watchlist");
+  if (!user) return null;
+  const slugs = Array.isArray(user.watchlist) ? user.watchlist : [];
+  if (slugs.length === 0) return [];
+  const items = await OttContent.find({ slug: { $in: slugs } });
+  const bySlug = new Map(items.map((item) => [item.slug, item]));
+  return slugs.map((slug) => bySlug.get(slug)).filter(Boolean);
+}
+
 router.get("/", async (_req, res) => {
   const items = await OttContent.find().sort({ createdAt: -1 }).limit(100);
   res.json(items);
+});
+
+router.get("/watchlist", requireAuth, async (req, res) => {
+  const items = await loadWatchlistItems(req.user.sub);
+  if (items === null) return res.status(404).json({ message: "User not found" });
+  return res.json(items);
+});
+
+router.get("/watchlist/:slug/status", requireAuth, async (req, res) => {
+  const user = await User.findById(req.user.sub).select("watchlist");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  const inWatchlist = (user.watchlist || []).includes(req.params.slug);
+  return res.json({ inWatchlist });
+});
+
+router.post("/watchlist/:slug", requireAuth, async (req, res) => {
+  const content = await OttContent.findOne({ slug: req.params.slug }).select("_id slug");
+  if (!content) return res.status(404).json({ message: "Content not found" });
+  const user = await User.findByIdAndUpdate(
+    req.user.sub,
+    { $addToSet: { watchlist: content.slug } },
+    { new: true }
+  ).select("watchlist");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  return res.json({ inWatchlist: true, watchlistCount: (user.watchlist || []).length });
+});
+
+router.delete("/watchlist/:slug", requireAuth, async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user.sub,
+    { $pull: { watchlist: req.params.slug } },
+    { new: true }
+  ).select("watchlist");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  return res.json({ inWatchlist: false, watchlistCount: (user.watchlist || []).length });
 });
 
 router.post("/", requireAuth, requireRole(["admin", "creator"]), async (req, res) => {

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { apiGet, apiGetAuth, apiPostAuth } from "../lib/api";
+import { apiDeleteAuth, apiGet, apiGetAuth, apiPostAuth } from "../lib/api";
 
 const PREMIUM_BADGE = "/ott/premium-gold-bucket.png";
 const SIGNIN_BADGE = "/ott/signin-to-watch.png";
@@ -19,6 +19,9 @@ export default function OttPlayerClient({ slug }) {
   const [status, setStatus] = useState("Loading...");
   const [statusCode, setStatusCode] = useState(0);
   const [adultOk, setAdultOk] = useState(false);
+  const [inWatchlist, setInWatchlist] = useState(false);
+  const [watchlistBusy, setWatchlistBusy] = useState(false);
+  const [watchlistHint, setWatchlistHint] = useState("");
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,6 +59,8 @@ export default function OttPlayerClient({ slug }) {
           if (!cancelled && videoRef.current && progress?.seconds > 0) {
             videoRef.current.currentTime = progress.seconds;
           }
+          const watchlistStatus = await apiGetAuth(`/api/v1/ott/watchlist/${slug}/status`);
+          if (!cancelled) setInWatchlist(Boolean(watchlistStatus?.inWatchlist));
         } catch (error) {
           if (!cancelled) {
             setStatusCode(error?.status || 0);
@@ -77,7 +82,7 @@ export default function OttPlayerClient({ slug }) {
   }, [slug, adultOk]);
 
   useEffect(() => {
-    const timer = setInterval(async () => {
+    async function saveProgress() {
       const el = videoRef.current;
       if (!el || !playback) return;
       try {
@@ -89,14 +94,57 @@ export default function OttPlayerClient({ slug }) {
       } catch {
         // Silent fail so playback is uninterrupted.
       }
-    }, 15000);
+    }
 
-    return () => clearInterval(timer);
+    const timer = setInterval(saveProgress, 15000);
+    const el = videoRef.current;
+    if (el) {
+      el.addEventListener("pause", saveProgress);
+      el.addEventListener("ended", saveProgress);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", saveProgress);
+    }
+
+    return () => {
+      clearInterval(timer);
+      if (el) {
+        el.removeEventListener("pause", saveProgress);
+        el.removeEventListener("ended", saveProgress);
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeunload", saveProgress);
+      }
+    };
   }, [slug, playback]);
 
   function confirmAdult() {
     window.sessionStorage.setItem(adultStorageKey(slug), "1");
     setAdultOk(true);
+  }
+
+  async function toggleWatchlist() {
+    setWatchlistHint("");
+    setWatchlistBusy(true);
+    try {
+      if (inWatchlist) {
+        await apiDeleteAuth(`/api/v1/ott/watchlist/${slug}`);
+        setInWatchlist(false);
+        setWatchlistHint("Removed from watchlist.");
+      } else {
+        await apiPostAuth(`/api/v1/ott/watchlist/${slug}`, {});
+        setInWatchlist(true);
+        setWatchlistHint("Added to watchlist.");
+      }
+    } catch (error) {
+      if (error?.status === 401) {
+        setWatchlistHint("Sign in to manage your watchlist.");
+      } else {
+        setWatchlistHint("Could not update watchlist right now.");
+      }
+    } finally {
+      setWatchlistBusy(false);
+    }
   }
 
   if (!content) return <p className="text-zinc-300">{status || "OTT content not found."}</p>;
@@ -212,6 +260,17 @@ export default function OttPlayerClient({ slug }) {
         </div>
 
         <p className="mt-6 text-sm leading-relaxed text-zinc-400">{content.description}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleWatchlist}
+            disabled={watchlistBusy}
+            className="rounded-md border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+          >
+            {watchlistBusy ? "Updating..." : inWatchlist ? "Remove from watchlist" : `Watchlist ${content.title}`}
+          </button>
+          {watchlistHint ? <span className="text-xs text-zinc-400">{watchlistHint}</span> : null}
+        </div>
       </div>
     </section>
   );

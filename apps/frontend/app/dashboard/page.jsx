@@ -61,7 +61,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <Link
-          href="/ott?section=watchlist"
+          href="/dashboard/watchlist"
           className="block rounded bg-brandCard p-4 transition hover:bg-brandCard/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandAccent"
         >
           <h2 className="mb-2 font-semibold">Watchlist</h2>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             </div>
           )}
           <div className="mt-3">
-            <Link href="/ott?section=continue" className="text-sm text-brandAccent">
+            <Link href="/dashboard/continue-watching" className="text-sm text-brandAccent">
               Open continue watching
             </Link>
           </div>

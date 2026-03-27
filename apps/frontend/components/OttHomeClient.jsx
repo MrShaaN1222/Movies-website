@@ -18,7 +18,11 @@ function filterByView(items, view) {
   return items;
 }
 
-function OttPosterCard({ item, loggedIn }) {
+function formatMinutes(seconds) {
+  return Math.max(1, Math.floor((seconds || 0) / 60));
+}
+
+function OttPosterCard({ item, loggedIn, metaText }) {
   const poster = item.posterUrl;
   const premium = item.isPremium !== false;
   const showSignInGate = premium && !loggedIn;
@@ -58,6 +62,7 @@ function OttPosterCard({ item, loggedIn }) {
       <div className="border-t border-white/5 bg-black/50 px-2 py-2">
         <p className="line-clamp-2 text-xs font-medium text-white">{item.title}</p>
         <p className="mt-0.5 text-[10px] capitalize text-zinc-400">{String(item.type || "").replace(/-/g, " ")}</p>
+        {metaText ? <p className="mt-1 text-[10px] text-ottBlue">{metaText}</p> : null}
       </div>
     </Link>
   );
@@ -78,10 +83,12 @@ function Row({ title, subtitle, children, id }) {
   );
 }
 
-export default function OttHomeClient({ items = [], view = "all" }) {
+export default function OttHomeClient({ items = [], view = "all", section = "" }) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [loggedIn, setLoggedIn] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [continueItems, setContinueItems] = useState([]);
+  const [watchlistItems, setWatchlistItems] = useState([]);
 
   useEffect(() => {
     function sync() {
@@ -116,6 +123,38 @@ export default function OttHomeClient({ items = [], view = "all" }) {
     };
   }, [loggedIn]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUserRows() {
+      if (!loggedIn) {
+        if (!cancelled) {
+          setContinueItems([]);
+          setWatchlistItems([]);
+        }
+        return;
+      }
+      try {
+        const [continueRows, watchlist] = await Promise.all([
+          apiGetAuth("/api/v1/ott/progress/continue"),
+          apiGetAuth("/api/v1/ott/watchlist"),
+        ]);
+        if (!cancelled) {
+          setContinueItems(Array.isArray(continueRows) ? continueRows : []);
+          setWatchlistItems(Array.isArray(watchlist) ? watchlist : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setContinueItems([]);
+          setWatchlistItems([]);
+        }
+      }
+    }
+    loadUserRows();
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
+
   const list = useMemo(() => filterByView(items, view), [items, view]);
   const heroList = list.length ? list : items;
   const featured = heroList[heroIndex % heroList.length];
@@ -131,6 +170,14 @@ export default function OttHomeClient({ items = [], view = "all" }) {
     }, HERO_AUTOPLAY_MS);
     return () => window.clearInterval(id);
   }, [heroList.length]);
+
+  useEffect(() => {
+    if (!section || typeof document === "undefined") return;
+    const id = section === "continue" ? "continue-watching" : section === "watchlist" ? "watchlist" : "";
+    if (!id) return;
+    const node = document.getElementById(id);
+    if (node) node.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [section, continueItems.length, watchlistItems.length]);
 
   return (
     <div className="relative -mx-6 min-h-screen bg-black text-zinc-100">
@@ -201,6 +248,39 @@ export default function OttHomeClient({ items = [], view = "all" }) {
       ) : null}
 
       <div className="relative z-[1] mx-auto max-w-7xl space-y-10 px-6 py-12 md:px-10">
+        <Row id="continue-watching" title="Continue Watching" subtitle="Pick up where you left off">
+          {continueItems.length > 0 ? (
+            continueItems.map((row) => (
+              <OttPosterCard
+                key={row.progressId}
+                item={row.content}
+                loggedIn={loggedIn}
+                metaText={`Resume from ${formatMinutes(row.seconds)} min`}
+              />
+            ))
+          ) : (
+            <div className="rounded-lg border border-white/10 bg-zinc-900/80 p-4 text-sm text-zinc-300">
+              <p>No unfinished titles yet.</p>
+              <Link href="/ott" className="mt-2 inline-block text-ottBlue hover:underline">
+                Start watching on OTT
+              </Link>
+            </div>
+          )}
+        </Row>
+
+        <Row id="watchlist" title="Watchlist" subtitle="Movies and shows saved for later">
+          {watchlistItems.length > 0 ? (
+            watchlistItems.map((item) => <OttPosterCard key={`watchlist-${item._id || item.slug}`} item={item} loggedIn={loggedIn} />)
+          ) : (
+            <div className="rounded-lg border border-white/10 bg-zinc-900/80 p-4 text-sm text-zinc-300">
+              <p>Your watchlist is empty.</p>
+              <Link href="/ott" className="mt-2 inline-block text-ottBlue hover:underline">
+                Add movies to watchlist
+              </Link>
+            </div>
+          )}
+        </Row>
+
         <Row id="trending" title="Trending on Mirai OTT" subtitle="Handpicked originals and exclusives">
           {(list.length ? list : items).map((item) => (
             <OttPosterCard key={item._id || item.slug} item={item} loggedIn={loggedIn} />
