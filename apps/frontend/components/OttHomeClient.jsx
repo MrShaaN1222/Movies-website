@@ -7,7 +7,6 @@ import { apiGetAuth } from "../lib/api";
 
 const HERO_AUTOPLAY_MS = 7000;
 
-const PREMIUM_BADGE = "/ott/premium-gold-bucket.png";
 const SIGNIN_BADGE = "/ott/signin-to-watch.png";
 
 function filterByView(items, view) {
@@ -42,8 +41,12 @@ function OttPosterCard({ item, loggedIn, metaText }) {
           <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">{item.contentRating}</span>
         ) : null}
         {premium ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={PREMIUM_BADGE} alt="" className="pointer-events-none absolute bottom-2 left-2 z-[1] h-9 w-auto drop-shadow-md" />
+          <span className="pointer-events-none absolute right-2 top-2 z-[2] inline-flex items-center gap-1 rounded-full bg-amber-400/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-black shadow-md">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden>
+              <path d="M4 18h16l-1.4-8.4-4.7 3.5L12 6 10.1 13.1 5.4 9.6 4 18zm1.5 2a1 1 0 1 1 0-2h13a1 1 0 1 1 0 2h-13z" />
+            </svg>
+            Premium
+          </span>
         ) : null}
         {showSignInGate ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] flex justify-center bg-gradient-to-t from-black via-black/85 to-transparent px-2 pb-3 pt-10">
