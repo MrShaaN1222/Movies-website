@@ -38,6 +38,18 @@ export default function AuthActions() {
     return (
       <div className="flex items-center gap-2">
         <Link
+          href="/dashboard"
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white transition hover:border-brandAccent"
+        >
+          Dashboard
+        </Link>
+        <Link
+          href="/dashboard/account"
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white transition hover:border-brandAccent"
+        >
+          Account
+        </Link>
+        <Link
           href="/subscription"
           className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white transition hover:border-brandAccent"
         >

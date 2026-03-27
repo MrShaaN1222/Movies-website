@@ -71,3 +71,11 @@ export async function apiPost(path, body) {
 export async function apiPostAuth(path, body) {
   return apiRequest(path, { method: "POST", body, cache: "no-store" });
 }
+
+export async function apiPatchAuth(path, body) {
+  return apiRequest(path, { method: "PATCH", body, cache: "no-store" });
+}
+
+export async function apiDeleteAuth(path, body) {
+  return apiRequest(path, { method: "DELETE", body, cache: "no-store" });
+}
