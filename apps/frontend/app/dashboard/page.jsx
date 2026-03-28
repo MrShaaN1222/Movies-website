@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGetAuth } from "../../lib/api";
+import { movieCardImageUrl } from "../../components/DashboardPosterCard";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -79,15 +81,25 @@ export default function DashboardPage() {
             <p className="text-slate-300">Resume OTT content across devices.</p>
           ) : (
             <div className="space-y-2">
-              {continueItems.slice(0, 3).map((row) => (
-                <Link
-                  key={row.progressId}
-                  className="block text-sm text-brandAccent"
-                  href={`/ott/${row.content.slug}`}
-                >
-                  {row.content.title} - {Math.floor((row.seconds || 0) / 60)} min
-                </Link>
-              ))}
+              {continueItems.slice(0, 3).map((row) => {
+                const src = movieCardImageUrl(row.content);
+                return (
+                  <Link
+                    key={row.progressId}
+                    className="flex items-center gap-3 rounded-md p-1 transition hover:bg-white/5"
+                    href={`/ott/${row.content.slug}`}
+                  >
+                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded bg-slate-800">
+                      {src ? (
+                        <Image src={src} alt="" fill className="object-cover" sizes="40px" unoptimized />
+                      ) : null}
+                    </div>
+                    <span className="text-sm text-brandAccent">
+                      {row.content.title} — {Math.floor((row.seconds || 0) / 60)} min
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           )}
           <div className="mt-3">
@@ -109,11 +121,21 @@ export default function DashboardPage() {
             <p className="text-slate-300">Recently opened non-OTT titles appear here.</p>
           ) : (
             <div className="space-y-2">
-              {nonOttContinue.slice(0, 3).map((movie) => (
-                <Link key={movie._id || movie.slug} className="block text-sm text-brandAccent" href={`/movie/${movie.slug}`}>
-                  {movie.title}
-                </Link>
-              ))}
+              {nonOttContinue.slice(0, 3).map((movie) => {
+                const src = movieCardImageUrl(movie);
+                return (
+                  <Link
+                    key={movie._id || movie.slug}
+                    className="flex items-center gap-3 rounded-md p-1 transition hover:bg-white/5"
+                    href={`/movie/${movie.slug}`}
+                  >
+                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded bg-slate-800">
+                      {src ? <Image src={src} alt="" fill className="object-cover" sizes="40px" unoptimized /> : null}
+                    </div>
+                    <span className="text-sm text-brandAccent">{movie.title}</span>
+                  </Link>
+                );
+              })}
             </div>
           )}
           <div className="mt-3">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGetAuth } from "../../../lib/api";
+import DashboardPosterCard, { movieCardImageUrl } from "../../../components/DashboardPosterCard";
 
 function formatMinutes(seconds) {
   return Math.max(1, Math.floor((seconds || 0) / 60));
@@ -56,12 +57,15 @@ export default function DashboardContinueWatchingPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {rows.map((row) => (
-            <Link key={row.progressId} href={`/ott/${row.content.slug}`} className="rounded bg-brandCard p-4 transition hover:bg-brandCard/80">
-              <p className="font-semibold text-white">{row.content.title}</p>
-              <p className="mt-1 text-xs text-slate-400">Resume from {formatMinutes(row.seconds)} min</p>
-            </Link>
+            <DashboardPosterCard
+              key={row.progressId}
+              href={`/ott/${row.content.slug}`}
+              title={row.content.title}
+              subtitle={`Resume from ${formatMinutes(row.seconds)} min`}
+              imageUrl={movieCardImageUrl(row.content)}
+            />
           ))}
         </div>
       )}

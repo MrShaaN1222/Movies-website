@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apiDeleteAuth, apiGet, apiGetAuth, apiPostAuth } from "../lib/api";
+import { OttLandscapeHoverCard } from "./OttHoverCard";
 
 const PREMIUM_BADGE = "/ott/premium-gold-bucket.png";
 const SIGNIN_BADGE = "/ott/signin-to-watch.png";
@@ -46,6 +47,7 @@ export default function OttPlayerClient({ slug }) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [relatedItems, setRelatedItems] = useState([]);
   const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
+  const [loggedIn, setLoggedIn] = useState(false);
   const isAdult = Boolean(content?.isAdult);
   const showAdultGate = isAdult && !adultOk;
   const premium = content?.isPremium !== false;
@@ -54,6 +56,19 @@ export default function OttPlayerClient({ slug }) {
     if (typeof window === "undefined") return;
     setAdultOk(Boolean(window.sessionStorage.getItem(adultStorageKey(slug))));
   }, [slug]);
+
+  useEffect(() => {
+    function syncAuth() {
+      setLoggedIn(Boolean(typeof window !== "undefined" && window.localStorage.getItem("mirai_token")));
+    }
+    syncAuth();
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("mirai-auth-changed", syncAuth);
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("mirai-auth-changed", syncAuth);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -829,7 +844,7 @@ export default function OttPlayerClient({ slug }) {
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {premium ? (
                 <Link href="/subscription" className="rounded-full border border-amber-300/40 bg-amber-500/15 px-3 py-2 font-medium text-amber-200">
-                  Join MX Gold
+                  Join Mirai Gold
                 </Link>
               ) : null}
               <button
@@ -869,48 +884,47 @@ export default function OttPlayerClient({ slug }) {
             </p>
           </div>
 
-          <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
-            {episodes.map((episode, idx) => (
-              <div key={`ep-${idx}-${episode.title || "episode"}`} className="w-64 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900/80">
-                <div className="relative aspect-video w-full bg-zinc-800">
-                  {episode.posterUrl || content.posterUrl ? (
-                    <Image
-                      src={episode.posterUrl || content.posterUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="256px"
-                      unoptimized
-                    />
-                  ) : null}
-                </div>
-                <div className="space-y-1 p-2">
-                  <p className="text-[11px] text-zinc-400">
-                    S{currentSeason?.seasonNumber || safeSeasonIdx + 1} E{episode.episodeNumber || idx + 1}
-                    {episode.releasedAt ? ` | ${formatEpisodeDate(episode.releasedAt)}` : ""}
-                  </p>
-                  <p className="line-clamp-1 text-sm font-semibold text-white">{episode.title || `Episode ${idx + 1}`}</p>
-                  <p className="line-clamp-2 text-xs text-zinc-400">{episode.description || "Episode description coming soon."}</p>
-                </div>
-              </div>
-            ))}
+          <div className="-mx-1 flex gap-3 overflow-x-auto overflow-y-visible pb-8 pt-1 [scrollbar-width:thin]">
+            {episodes.map((episode, idx) => {
+              const seasonNum = currentSeason?.seasonNumber || safeSeasonIdx + 1;
+              const epNum = episode.episodeNumber || idx + 1;
+              const epMeta = `S${seasonNum} E${epNum}${episode.releasedAt ? ` · ${formatEpisodeDate(episode.releasedAt)}` : ""}`;
+              const epTitle = episode.title || `Episode ${idx + 1}`;
+              return (
+                <OttLandscapeHoverCard
+                  key={`ep-${idx}-${epTitle}`}
+                  href={null}
+                  item={{
+                    title: epTitle,
+                    posterUrl: episode.posterUrl || content.posterUrl,
+                    contentRating: content.contentRating,
+                    isPremium: content.isPremium,
+                  }}
+                  previewFallback={content}
+                  widthClass="w-64"
+                  footerTitle={epTitle}
+                  footerMeta={epMeta}
+                  typeLabel="Episode"
+                  loggedIn={loggedIn}
+                  popoverDescription={episode.description || "Episode description coming soon."}
+                />
+              );
+            })}
           </div>
         </div>
 
         <div className="mt-8">
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-300">Related Shows</h3>
-          <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
+          <div className="-mx-1 flex gap-3 overflow-x-auto overflow-y-visible pb-8 pt-1 [scrollbar-width:thin]">
             {relatedItems.length > 0 ? (
               relatedItems.map((item) => (
-                <Link key={`related-${item.slug}`} href={`/ott/${item.slug}`} className="w-52 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900/80">
-                  <div className="relative aspect-video w-full bg-zinc-800">
-                    {item.posterUrl ? <Image src={item.posterUrl} alt="" fill className="object-cover" sizes="208px" unoptimized /> : null}
-                  </div>
-                  <div className="p-2">
-                    <p className="line-clamp-1 text-sm font-semibold text-white">{item.title}</p>
-                    <p className="text-xs capitalize text-zinc-400">{String(item.type || "").replace(/-/g, " ")}</p>
-                  </div>
-                </Link>
+                <OttLandscapeHoverCard
+                  key={`related-${item.slug}`}
+                  href={`/ott/${item.slug}`}
+                  item={item}
+                  loggedIn={loggedIn}
+                  popoverDescription={item.description}
+                />
               ))
             ) : (
               <p className="text-sm text-zinc-500">More related titles will appear here.</p>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGetAuth } from "../../../lib/api";
+import DashboardPosterCard, { movieCardImageUrl } from "../../../components/DashboardPosterCard";
 
 export default function DashboardNonOttWishlistPage() {
   const router = useRouter();
@@ -51,12 +52,15 @@ export default function DashboardNonOttWishlistPage() {
           <p className="text-slate-300">No non-OTT movies in wishlist yet.</p>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {items.map((item) => (
-            <Link key={item._id || item.slug} href={`/movie/${item.slug}`} className="rounded bg-brandCard p-4 transition hover:bg-brandCard/80">
-              <p className="font-semibold text-white">{item.title}</p>
-              <p className="mt-1 text-xs text-slate-400">{item.releaseDate || "Latest"}</p>
-            </Link>
+            <DashboardPosterCard
+              key={item._id || item.slug}
+              href={`/movie/${item.slug}`}
+              title={item.title}
+              subtitle={item.releaseDate || "Latest"}
+              imageUrl={movieCardImageUrl(item)}
+            />
           ))}
         </div>
       )}

@@ -8,6 +8,7 @@ export default function MovieCardsClient({ movies = [], showDetailsButton = fals
   const [loggedIn, setLoggedIn] = useState(false);
   const [favoritesBySlug, setFavoritesBySlug] = useState({});
   const [busyBySlug, setBusyBySlug] = useState({});
+  const [favoriteHint, setFavoriteHint] = useState("");
 
   useEffect(() => {
     function syncAuth() {
@@ -56,11 +57,18 @@ export default function MovieCardsClient({ movies = [], showDetailsButton = fals
         await apiPostAuth(`/api/v1/movies/favorites/${slug}`, {});
         setFavoritesBySlug((prev) => ({ ...prev, [slug]: true }));
       }
+      setFavoriteHint("");
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("mirai-movie-favorites-changed", { detail: { slug } }));
       }
-    } catch {
-      // Keep this lightweight and non-blocking.
+    } catch (err) {
+      const msg = err?.message || "";
+      setFavoriteHint(
+        msg.includes("not found") || err?.status === 404
+          ? "Wishlist needs this title in the server catalog. Run npm run seed:demo-movies -w @mirai/backend (see Admin)."
+          : "Could not update wishlist. Try again or sign in."
+      );
+      window.setTimeout(() => setFavoriteHint(""), 8000);
     } finally {
       setBusyBySlug((prev) => ({ ...prev, [slug]: false }));
     }
@@ -68,12 +76,22 @@ export default function MovieCardsClient({ movies = [], showDetailsButton = fals
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-5">
+      {favoriteHint ? (
+        <p className="col-span-full text-sm text-amber-200/90" role="status">
+          {favoriteHint}
+        </p>
+      ) : null}
       {movies.map((movie) => (
         <article key={movie._id || movie.slug} className="overflow-hidden rounded-lg bg-brandCard">
           <Link href={`/movie/${movie.slug}`} className="block">
             <div className="relative h-64 w-full bg-slate-800">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={movie.poster || movie.posterUrl || ""}
+                alt={movie.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent" />
               {loggedIn ? (
                 <button

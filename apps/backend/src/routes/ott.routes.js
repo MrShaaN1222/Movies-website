@@ -12,22 +12,12 @@ import {
 } from "../services/transcoding.service.js";
 import { env } from "../config/env.js";
 import { rateLimit } from "../middleware/rateLimit.js";
+import { OTT_DEMO_LAST_SIGNAL } from "../data/ottDemoLastSignal.js";
 
 const router = express.Router();
 
 const FALLBACK_OTT_ITEMS = [
-  {
-    _id: "o1",
-    slug: "mirai-original-the-last-signal",
-    title: "Mirai Original: The Last Signal",
-    type: "exclusive",
-    description: "A deep-space rescue mystery spanning eight episodes.",
-    posterUrl: "https://image.tmdb.org/t/p/w780/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    isPremium: true,
-    isAdult: false,
-    contentRating: "U/A 13+",
-  },
+  OTT_DEMO_LAST_SIGNAL,
   {
     _id: "o2",
     slug: "mirai-original-shadow-city",
@@ -152,9 +142,11 @@ async function loadWatchlistItems(userId) {
 }
 
 router.get("/", async (_req, res) => {
-  const items = await OttContent.find().sort({ createdAt: -1 }).limit(100);
-  if (!items.length) return res.json(FALLBACK_OTT_ITEMS);
-  res.json(items);
+  const dbItems = await OttContent.find().sort({ createdAt: -1 }).limit(100).lean();
+  if (!dbItems.length) return res.json(FALLBACK_OTT_ITEMS);
+  const dbSlugs = new Set(dbItems.map((item) => item.slug));
+  const extras = FALLBACK_OTT_ITEMS.filter((fb) => !dbSlugs.has(fb.slug));
+  return res.json([...dbItems, ...extras]);
 });
 
 router.get("/watchlist", requireAuth, async (req, res) => {
