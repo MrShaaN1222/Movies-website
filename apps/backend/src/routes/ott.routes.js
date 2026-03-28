@@ -86,6 +86,36 @@ const createContentSchema = z.object({
   description: z.string().optional(),
   posterUrl: z.string().url().optional(),
   hlsUrl: z.string().url().optional(),
+  trailerHlsUrl: z.string().url().optional(),
+  previewHlsUrl: z.string().url().optional(),
+  hlsPreviewUrl: z.string().url().optional(),
+  year: z.number().int().min(1900).max(2100).optional(),
+  durationMin: z.number().int().min(1).max(10_000).optional(),
+  languages: z.array(z.string().min(1)).optional(),
+  genres: z.array(z.string().min(1)).optional(),
+  director: z.string().min(2).optional(),
+  cast: z.array(z.string().min(1)).optional(),
+  publisher: z.string().min(2).optional(),
+  seasons: z
+    .array(
+      z.object({
+        seasonNumber: z.number().int().min(1).optional(),
+        title: z.string().min(1).optional(),
+        episodes: z
+          .array(
+            z.object({
+              episodeNumber: z.number().int().min(1).optional(),
+              title: z.string().min(1).optional(),
+              description: z.string().optional(),
+              posterUrl: z.string().url().optional(),
+              durationMin: z.number().int().min(1).max(10_000).optional(),
+              releasedAt: z.coerce.date().optional(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .optional(),
   isPremium: z.boolean().optional(),
   isAdult: z.boolean().optional(),
   contentRating: z.string().optional(),

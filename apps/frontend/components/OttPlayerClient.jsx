@@ -44,6 +44,8 @@ export default function OttPlayerClient({ slug }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMorePanel, setShowMorePanel] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [relatedItems, setRelatedItems] = useState([]);
+  const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
   const isAdult = Boolean(content?.isAdult);
   const showAdultGate = isAdult && !adultOk;
   const premium = content?.isPremium !== false;
@@ -60,6 +62,18 @@ export default function OttPlayerClient({ slug }) {
       try {
         const info = await apiGet(`/api/v1/ott/${slug}`);
         if (!cancelled) setContent(info);
+        try {
+          const catalog = await apiGet("/api/v1/ott");
+          if (!cancelled) {
+            const rel = (Array.isArray(catalog) ? catalog : [])
+              .filter((item) => item?.slug && item.slug !== slug)
+              .filter((item) => !info?.type || item.type === info.type)
+              .slice(0, 12);
+            setRelatedItems(rel);
+          }
+        } catch {
+          if (!cancelled) setRelatedItems([]);
+        }
 
         const isAdult = Boolean(info?.isAdult);
         const canRequestPlayback = !isAdult || (typeof window !== "undefined" && window.sessionStorage.getItem(adultStorageKey(slug)));
@@ -105,6 +119,10 @@ export default function OttPlayerClient({ slug }) {
       cancelled = true;
     };
   }, [slug, adultOk]);
+
+  useEffect(() => {
+    setSelectedSeasonIdx(0);
+  }, [slug]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -397,6 +415,22 @@ export default function OttPlayerClient({ slug }) {
     return `${mins}:${String(secs).padStart(2, "0")}`;
   }
 
+  function formatDuration(mins) {
+    const n = Number(mins || 0);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    const h = Math.floor(n / 60);
+    const m = n % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m} min`;
+  }
+
+  function formatEpisodeDate(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
   useEffect(() => {
     function isInteractiveTarget(target) {
       if (!(target instanceof HTMLElement)) return false;
@@ -493,7 +527,55 @@ export default function OttPlayerClient({ slug }) {
     }
   }
 
+  async function shareContent() {
+    if (typeof window === "undefined") return;
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: content?.title || "Mirai OTT", url: shareUrl });
+        return;
+      }
+    } catch {
+      // fallback to clipboard below
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setWatchlistHint("Link copied.");
+    } catch {
+      setWatchlistHint("Could not copy link.");
+    }
+  }
+
   if (!content) return <p className="text-zinc-300">{status || "OTT content not found."}</p>;
+
+  const seasons =
+    Array.isArray(content?.seasons) && content.seasons.length > 0
+      ? content.seasons
+      : [
+          {
+            seasonNumber: 1,
+            title: "Season 1",
+            episodes: [
+              {
+                episodeNumber: 1,
+                title: content.title,
+                description: content.description,
+                posterUrl: content.posterUrl,
+                durationMin: content.durationMin || 41,
+                releasedAt: content.createdAt,
+              },
+            ],
+          },
+        ];
+  const safeSeasonIdx = Math.min(Math.max(selectedSeasonIdx, 0), Math.max(0, seasons.length - 1));
+  const currentSeason = seasons[safeSeasonIdx] || seasons[0];
+  const episodes = Array.isArray(currentSeason?.episodes) ? currentSeason.episodes : [];
+  const metaChips = [
+    content.contentRating,
+    content.year ? String(content.year) : "",
+    formatDuration(content.durationMin),
+    Array.isArray(content.languages) ? content.languages.join(", ") : "",
+  ].filter(Boolean);
 
   return (
     <section className="relative -mx-6 min-h-[70vh] bg-black text-zinc-100">
@@ -724,17 +806,116 @@ export default function OttPlayerClient({ slug }) {
           ) : null}
         </div>
 
-        <p className="mt-6 text-sm leading-relaxed text-zinc-400">{content.description}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleWatchlist}
-            disabled={watchlistBusy}
-            className="rounded-md border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
-          >
-            {watchlistBusy ? "Updating..." : inWatchlist ? "Remove from watchlist" : `Watchlist ${content.title}`}
-          </button>
-          {watchlistHint ? <span className="text-xs text-zinc-400">{watchlistHint}</span> : null}
+        <div className="mt-8 border-t border-white/10 pt-6">
+          <p className="mb-3 text-[11px] text-zinc-500">Home &gt; OTT &gt; {content.type} &gt; {content.title}</p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl space-y-3">
+              <h2 className="text-3xl font-semibold text-zinc-200">{content.title}</h2>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-300">
+                {metaChips.map((chip) => (
+                  <span key={`chip-${chip}`} className="rounded border border-white/25 px-2 py-0.5">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              {Array.isArray(content?.genres) && content.genres.length > 0 ? (
+                <p className="text-xs text-zinc-400">Genre: {content.genres.join(", ")}</p>
+              ) : null}
+              {content?.director ? <p className="text-xs text-zinc-400">Director: {content.director}</p> : null}
+              {Array.isArray(content?.cast) && content.cast.length > 0 ? <p className="text-xs text-zinc-400">Starring: {content.cast.join(", ")}</p> : null}
+              {content?.publisher ? <p className="text-xs text-zinc-400">Publisher: {content.publisher}</p> : null}
+              <p className="max-w-3xl text-sm leading-relaxed text-zinc-400">{content.description}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {premium ? (
+                <Link href="/subscription" className="rounded-full border border-amber-300/40 bg-amber-500/15 px-3 py-2 font-medium text-amber-200">
+                  Join MX Gold
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={toggleWatchlist}
+                disabled={watchlistBusy}
+                className="rounded-full border border-white/20 bg-white/5 px-3 py-2 font-medium text-white disabled:opacity-60"
+              >
+                {watchlistBusy ? "Updating..." : inWatchlist ? "Remove from My List" : "Add to My List"}
+              </button>
+              <button type="button" onClick={shareContent} className="rounded-full border border-white/20 bg-white/5 px-3 py-2 font-medium text-white">
+                Share
+              </button>
+            </div>
+          </div>
+          {watchlistHint ? <p className="mt-2 text-xs text-zinc-400">{watchlistHint}</p> : null}
+        </div>
+
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {seasons.map((season, idx) => (
+                <button
+                  key={`season-${season.seasonNumber || idx}`}
+                  type="button"
+                  onClick={() => setSelectedSeasonIdx(idx)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
+                    idx === safeSeasonIdx ? "bg-ottBlue text-white" : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  {season.title || `Season ${season.seasonNumber || idx + 1}`}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-400">
+              Sort By <span className="text-ottBlue">Default</span>
+            </p>
+          </div>
+
+          <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
+            {episodes.map((episode, idx) => (
+              <div key={`ep-${idx}-${episode.title || "episode"}`} className="w-64 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900/80">
+                <div className="relative aspect-video w-full bg-zinc-800">
+                  {episode.posterUrl || content.posterUrl ? (
+                    <Image
+                      src={episode.posterUrl || content.posterUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="256px"
+                      unoptimized
+                    />
+                  ) : null}
+                </div>
+                <div className="space-y-1 p-2">
+                  <p className="text-[11px] text-zinc-400">
+                    S{currentSeason?.seasonNumber || safeSeasonIdx + 1} E{episode.episodeNumber || idx + 1}
+                    {episode.releasedAt ? ` | ${formatEpisodeDate(episode.releasedAt)}` : ""}
+                  </p>
+                  <p className="line-clamp-1 text-sm font-semibold text-white">{episode.title || `Episode ${idx + 1}`}</p>
+                  <p className="line-clamp-2 text-xs text-zinc-400">{episode.description || "Episode description coming soon."}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-300">Related Shows</h3>
+          <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
+            {relatedItems.length > 0 ? (
+              relatedItems.map((item) => (
+                <Link key={`related-${item.slug}`} href={`/ott/${item.slug}`} className="w-52 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900/80">
+                  <div className="relative aspect-video w-full bg-zinc-800">
+                    {item.posterUrl ? <Image src={item.posterUrl} alt="" fill className="object-cover" sizes="208px" unoptimized /> : null}
+                  </div>
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-sm font-semibold text-white">{item.title}</p>
+                    <p className="text-xs capitalize text-zinc-400">{String(item.type || "").replace(/-/g, " ")}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-sm text-zinc-500">More related titles will appear here.</p>
+            )}
+          </div>
         </div>
       </div>
     </section>

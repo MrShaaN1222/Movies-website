@@ -621,10 +621,17 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
                   <button
                     type="button"
                     onClick={() => setHeroMuted((v) => !v)}
-                    className="inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/10 px-3 py-2 text-xs font-medium text-white backdrop-blur hover:bg-white/20"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur hover:bg-white/20"
                     aria-label={heroMuted ? "Unmute autoplay preview" : "Mute autoplay preview"}
+                    title={heroMuted ? "Unmute preview" : "Mute preview"}
                   >
-                    {heroMuted ? "Unmute preview" : "Mute preview"}
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-current" aria-hidden>
+                      {heroMuted ? (
+                        <path d="M16.5 12c0-1.8-1-3.3-2.5-4.1v8.2c1.5-.8 2.5-2.3 2.5-4.1zM19 12c0 2.8-1.6 5.2-4 6.3v-2.2c1.2-.8 2-2.2 2-4.1s-.8-3.3-2-4.1V5.7c2.4 1.1 4 3.5 4 6.3zM3 9v6h4l5 5V4L7 9H3zm17.7-2.3-1.4-1.4-15 15 1.4 1.4 15-15z" />
+                      ) : (
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.8-1-3.3-2.5-4.1v8.2c1.5-.8 2.5-2.3 2.5-4.1zM14 3.2v2.1c2.9 1 5 3.7 5 6.7s-2.1 5.7-5 6.7v2.1c4-.9 7-4.5 7-8.8s-3-7.9-7-8.8z" />
+                      )}
+                    </svg>
                   </button>
                 ) : null}
               </div>
