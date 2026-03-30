@@ -146,6 +146,7 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
   }, [loggedIn]);
 
   const list = useMemo(() => filterByView(items, view), [items, view]);
+  const trendingRail = list.length ? list : items;
   const heroList = list.length ? list : items;
   const featured = heroList[heroIndex % heroList.length];
   const selectedSection = getSectionData(section, { continueItems, watchlistItems, items, list });
@@ -522,7 +523,7 @@ export default function OttHomeClient({ items = [], view = "all", section = "" }
             </Row>
 
             <Row id="trending" title="Trending on Mirai OTT" subtitle="Handpicked originals and exclusives" viewAllHref="/ott?section=trending">
-          {(list.length ? list : items).map((item) => (
+          {trendingRail.map((item) => (
             <OttPosterCard
               key={item._id || item.slug}
               item={item}

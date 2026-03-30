@@ -900,11 +900,9 @@ export default function OttPlayerClient({ slug }) {
                     contentRating: content.contentRating,
                     isPremium: content.isPremium,
                   }}
-                  previewFallback={content}
                   widthClass="w-64"
                   footerTitle={epTitle}
                   footerMeta={epMeta}
-                  typeLabel="Episode"
                   loggedIn={loggedIn}
                   popoverDescription={episode.description || "Episode description coming soon."}
                 />
