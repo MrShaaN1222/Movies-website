@@ -6,31 +6,27 @@ import { useRouter } from "next/navigation";
 import { apiGetAuth } from "../../../lib/api";
 import DashboardPosterCard, { movieCardImageUrl } from "../../../components/DashboardPosterCard";
 
-function formatMinutes(seconds) {
-  return Math.max(1, Math.floor((seconds || 0) / 60));
-}
-
-export default function DashboardContinueWatchingPage() {
+export default function DashboardNonOttContinuePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [rows, setRows] = useState([]);
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const token = typeof window !== "undefined" ? window.localStorage.getItem("mirai_token") : null;
       if (!token) {
-        router.replace(`/login?returnUrl=${encodeURIComponent("/dashboard/continue-watching")}`);
+        router.replace(`/login?returnUrl=${encodeURIComponent("/dashboard/non-ott-continue")}`);
         return;
       }
       try {
-        const data = await apiGetAuth("/api/v1/ott/progress/continue");
+        const data = await apiGetAuth("/api/v1/movies/continue");
         if (!cancelled) {
-          setRows(Array.isArray(data) ? data : []);
+          setItems(Array.isArray(data) ? data : []);
           setReady(true);
         }
       } catch {
-        if (!cancelled) router.replace(`/login?returnUrl=${encodeURIComponent("/dashboard/continue-watching")}`);
+        if (!cancelled) router.replace(`/login?returnUrl=${encodeURIComponent("/dashboard/non-ott-continue")}`);
       }
     }
     load();
@@ -39,32 +35,29 @@ export default function DashboardContinueWatchingPage() {
     };
   }, [router]);
 
-  if (!ready) return <p className="text-sm text-slate-400">Loading continue watching...</p>;
+  if (!ready) return <p className="text-sm text-slate-400">Loading non-OTT continue...</p>;
 
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Continue Watching</h1>
+        <h1 className="text-2xl font-bold text-white">Non-OTT Continue</h1>
         <Link href="/dashboard" className="text-sm text-brandAccent">
           Back to dashboard
         </Link>
       </div>
-      {rows.length === 0 ? (
+      {items.length === 0 ? (
         <div className="rounded bg-brandCard p-5">
-          <p className="text-slate-300">No in-progress content found.</p>
-          <Link href="/ott" className="mt-3 inline-block rounded bg-brandAccent px-4 py-2 text-sm font-semibold text-white">
-            Start watching on OTT
-          </Link>
+          <p className="text-slate-300">No recent non-OTT titles yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {rows.map((row) => (
+          {items.map((item) => (
             <DashboardPosterCard
-              key={row.progressId}
-              href={`/ott/${row.content.slug}`}
-              title={row.content.title}
-              subtitle={`Resume from ${formatMinutes(row.seconds)} min`}
-              imageUrl={movieCardImageUrl(row.content)}
+              key={item._id || item.slug}
+              href={`/movie/${item.slug}`}
+              title={item.title}
+              subtitle={item.releaseDate || "Recent"}
+              imageUrl={movieCardImageUrl(item)}
             />
           ))}
         </div>

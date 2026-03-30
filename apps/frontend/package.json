@@ -12,6 +12,7 @@
   "dependencies": {
     "@mirai/shared": "*",
     "framer-motion": "latest",
+    "hls.js": "^1.6.15",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

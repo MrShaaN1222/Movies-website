@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "seed:ott-demo": "node scripts/seed-ott-demo-show.mjs",
+    "seed:demo-movies": "node scripts/seed-demo-movies.mjs",
     "dev": "node --watch src/index.js",
     "build": "node -e \"console.log('backend build not required for JS runtime')\"",
     "start": "node src/index.js",

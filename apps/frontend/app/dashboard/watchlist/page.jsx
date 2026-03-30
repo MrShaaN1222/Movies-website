@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGetAuth } from "../../../lib/api";
+import DashboardPosterCard, { movieCardImageUrl } from "../../../components/DashboardPosterCard";
 
 export default function DashboardWatchlistPage() {
   const router = useRouter();
@@ -29,8 +30,17 @@ export default function DashboardWatchlistPage() {
       }
     }
     load();
+    function onWatchlistChanged() {
+      load();
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("mirai-watchlist-changed", onWatchlistChanged);
+    }
     return () => {
       cancelled = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("mirai-watchlist-changed", onWatchlistChanged);
+      }
     };
   }, [router]);
 
@@ -52,12 +62,15 @@ export default function DashboardWatchlistPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {items.map((item) => (
-            <Link key={item._id || item.slug} href={`/ott/${item.slug}`} className="rounded bg-brandCard p-4 transition hover:bg-brandCard/80">
-              <p className="font-semibold text-white">{item.title}</p>
-              <p className="mt-1 text-xs capitalize text-slate-400">{String(item.type || "").replace(/-/g, " ")}</p>
-            </Link>
+            <DashboardPosterCard
+              key={item._id || item.slug}
+              href={`/ott/${item.slug}`}
+              title={item.title}
+              subtitle={String(item.type || "").replace(/-/g, " ") || "OTT"}
+              imageUrl={movieCardImageUrl(item)}
+            />
           ))}
         </div>
       )}

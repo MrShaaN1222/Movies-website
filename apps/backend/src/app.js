@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { env } from "./config/env.js";
+import { isDatabaseConnected } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import movieRoutes from "./routes/movies.routes.js";
 import providerRoutes from "./routes/providers.routes.js";
@@ -13,13 +15,19 @@ import ottRoutes from "./routes/ott.routes.js";
 import recommendationRoutes from "./routes/recommendations.routes.js";
 import monetizationRoutes from "./routes/monetization.routes.js";
 import newsletterRoutes from "./routes/newsletter.routes.js";
-import { env } from "./config/env.js";
+
+function normalizeOrigin(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
 
 function getAllowedOrigins() {
   const configured = (env.FRONTEND_URLS || env.FRONTEND_URL || "")
     .split(",")
-    .map((value) => value.trim())
+    .map((value) => normalizeOrigin(value))
     .filter(Boolean);
+
+  // Production defaults for known frontend deployments if env vars are incomplete.
+  configured.push("https://miraimoviesai.vercel.app", "https://mirai-movies-ai.netlify.app");
 
   if (env.NODE_ENV !== "production") {
     configured.push("http://localhost:3000", "http://127.0.0.1:3000");
@@ -38,18 +46,23 @@ export function createApp() {
   const app = express();
   const allowedOrigins = getAllowedOrigins();
   app.use(helmet());
-  app.use(
-    cors({
-      origin(origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.has(origin)) return callback(null, true);
-        if (env.NODE_ENV !== "production" && isPrivateNetworkDevOrigin(origin)) {
-          return callback(null, true);
-        }
-        return callback(new Error("Origin not allowed by CORS"));
-      },
-    })
-  );
+  const corsOptions = {
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.has(normalizedOrigin)) return callback(null, true);
+      if (env.NODE_ENV !== "production" && isPrivateNetworkDevOrigin(normalizedOrigin)) {
+        return callback(null, true);
+      }
+      // Avoid 500 on preflight for disallowed origins.
+      return callback(null, false);
+    },
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+    optionsSuccessStatus: 204,
+  };
+  app.use(cors(corsOptions));
   app.use(
     express.json({
       limit: "10mb",
@@ -60,7 +73,18 @@ export function createApp() {
   );
   app.use(morgan("dev"));
 
-  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api/")) return next();
+    if (isDatabaseConnected()) return next();
+    return res.status(503).json({
+      error: "Database unavailable",
+      message: "MongoDB is not connected. Check MONGODB_URI, Atlas IP whitelist, or run local MongoDB (docker compose up -d mongo).",
+    });
+  });
+
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", database: isDatabaseConnected() ? "connected" : "disconnected" });
+  });
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/movies", movieRoutes);

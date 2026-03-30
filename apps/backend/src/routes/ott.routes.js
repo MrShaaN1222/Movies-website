@@ -1,8 +1,8 @@
 import express from "express";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../middleware/auth.js";
-import { requirePremium } from "../middleware/entitlement.js";
 import { OttContent } from "../models/OttContent.js";
+import { Subscription } from "../models/Subscription.js";
 import { User } from "../models/User.js";
 import { WatchProgress } from "../models/WatchProgress.js";
 import {
@@ -12,8 +12,62 @@ import {
 } from "../services/transcoding.service.js";
 import { env } from "../config/env.js";
 import { rateLimit } from "../middleware/rateLimit.js";
+import { OTT_DEMO_LAST_SIGNAL } from "../data/ottDemoLastSignal.js";
 
 const router = express.Router();
+
+const FALLBACK_OTT_ITEMS = [
+  OTT_DEMO_LAST_SIGNAL,
+  {
+    _id: "o2",
+    slug: "mirai-original-shadow-city",
+    title: "Mirai Original: Shadow City",
+    type: "exclusive",
+    description: "A detective drama set in a hyper-connected metropolis.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/b0PlSFdDwbyK0cf5RxwDpaOJQvQ.jpg",
+    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: true,
+    isAdult: true,
+    contentRating: "A 18+",
+  },
+  {
+    _id: "o3",
+    slug: "mirai-spotlight-midnight-run",
+    title: "Mirai Spotlight: Midnight Run",
+    type: "short-film",
+    description: "A kinetic short film about one night that changes everything.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/caQp2MhwlkJ3V9D4Tr5kL5M4u9Y.jpg",
+    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: true,
+    isAdult: false,
+    contentRating: "U",
+  },
+  {
+    _id: "o4",
+    slug: "mirai-masterclass-cinema-lighting",
+    title: "Mirai Masterclass: Cinema Lighting",
+    type: "course",
+    description: "Learn how cinematographers sculpt light for story and mood.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+    hlsUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    isPremium: false,
+    isAdult: false,
+    contentRating: "U",
+  },
+];
+
+function findFallbackOttBySlug(slug) {
+  return FALLBACK_OTT_ITEMS.find((item) => item.slug === slug) || null;
+}
+
+async function findOttItemBySlug(slug) {
+  const fromDb = await OttContent.findOne({ slug });
+  return fromDb || findFallbackOttBySlug(slug);
+}
+
+function isPersistedOttItem(item) {
+  return Boolean(item?._id && typeof item._id !== "string");
+}
 
 const createContentSchema = z.object({
   title: z.string().min(2),
@@ -22,6 +76,36 @@ const createContentSchema = z.object({
   description: z.string().optional(),
   posterUrl: z.string().url().optional(),
   hlsUrl: z.string().url().optional(),
+  trailerHlsUrl: z.string().url().optional(),
+  previewHlsUrl: z.string().url().optional(),
+  hlsPreviewUrl: z.string().url().optional(),
+  year: z.number().int().min(1900).max(2100).optional(),
+  durationMin: z.number().int().min(1).max(10_000).optional(),
+  languages: z.array(z.string().min(1)).optional(),
+  genres: z.array(z.string().min(1)).optional(),
+  director: z.string().min(2).optional(),
+  cast: z.array(z.string().min(1)).optional(),
+  publisher: z.string().min(2).optional(),
+  seasons: z
+    .array(
+      z.object({
+        seasonNumber: z.number().int().min(1).optional(),
+        title: z.string().min(1).optional(),
+        episodes: z
+          .array(
+            z.object({
+              episodeNumber: z.number().int().min(1).optional(),
+              title: z.string().min(1).optional(),
+              description: z.string().optional(),
+              posterUrl: z.string().url().optional(),
+              durationMin: z.number().int().min(1).max(10_000).optional(),
+              releasedAt: z.coerce.date().optional(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .optional(),
   isPremium: z.boolean().optional(),
   isAdult: z.boolean().optional(),
   contentRating: z.string().optional(),
@@ -48,12 +132,21 @@ async function loadWatchlistItems(userId) {
   if (slugs.length === 0) return [];
   const items = await OttContent.find({ slug: { $in: slugs } });
   const bySlug = new Map(items.map((item) => [item.slug, item]));
-  return slugs.map((slug) => bySlug.get(slug)).filter(Boolean);
+  return slugs
+    .map((slug) => {
+      const fromDb = bySlug.get(slug);
+      if (fromDb) return fromDb;
+      return findFallbackOttBySlug(slug);
+    })
+    .filter(Boolean);
 }
 
 router.get("/", async (_req, res) => {
-  const items = await OttContent.find().sort({ createdAt: -1 }).limit(100);
-  res.json(items);
+  const dbItems = await OttContent.find().sort({ createdAt: -1 }).limit(100).lean();
+  if (!dbItems.length) return res.json(FALLBACK_OTT_ITEMS);
+  const dbSlugs = new Set(dbItems.map((item) => item.slug));
+  const extras = FALLBACK_OTT_ITEMS.filter((fb) => !dbSlugs.has(fb.slug));
+  return res.json([...dbItems, ...extras]);
 });
 
 router.get("/watchlist", requireAuth, async (req, res) => {
@@ -70,7 +163,7 @@ router.get("/watchlist/:slug/status", requireAuth, async (req, res) => {
 });
 
 router.post("/watchlist/:slug", requireAuth, async (req, res) => {
-  const content = await OttContent.findOne({ slug: req.params.slug }).select("_id slug");
+  const content = await findOttItemBySlug(req.params.slug);
   if (!content) return res.status(404).json({ message: "Content not found" });
   const user = await User.findByIdAndUpdate(
     req.user.sub,
@@ -113,8 +206,12 @@ router.post(
 );
 
 router.get("/:slug/progress", requireAuth, async (req, res) => {
-  const item = await OttContent.findOne({ slug: req.params.slug });
+  const item = await findOttItemBySlug(req.params.slug);
   if (!item) return res.status(404).json({ message: "Content not found" });
+  if (!isPersistedOttItem(item)) {
+    const progress = await WatchProgress.findOne({ userId: req.user.sub, ottSlug: item.slug });
+    return res.json(progress || { seconds: 0, completed: false, deviceId: "web" });
+  }
   const progress = await WatchProgress.findOne({ userId: req.user.sub, ottContentId: item._id });
   return res.json(progress || { seconds: 0, completed: false, deviceId: "web" });
 });
@@ -126,15 +223,15 @@ router.get("/progress/continue", requireAuth, async (req, res) => {
     .populate("ottContentId");
 
   const items = rows
-    .filter((row) => row.ottContentId)
+    .filter((row) => row.ottContentId || row.ottSlug)
     .map((row) => ({
       progressId: row._id,
       seconds: row.seconds,
       updatedAt: row.updatedAt,
-      content: row.ottContentId,
+      content: row.ottContentId || findFallbackOttBySlug(row.ottSlug),
     }));
 
-  return res.json(items);
+  return res.json(items.filter((row) => row.content));
 });
 
 router.post(
@@ -150,9 +247,13 @@ router.post(
   }
 );
 
-router.get("/:slug/playback", requireAuth, requirePremium, async (req, res) => {
-  const item = await OttContent.findOne({ slug: req.params.slug });
+router.get("/:slug/playback", requireAuth, async (req, res) => {
+  const item = await findOttItemBySlug(req.params.slug);
   if (!item) return res.status(404).json({ message: "Content not found" });
+  if (item.isPremium !== false) {
+    const sub = await Subscription.findOne({ userId: req.user.sub, status: "active" });
+    if (!sub) return res.status(402).json({ message: "Premium subscription required" });
+  }
   const signedHlsUrl = createSignedPlaybackUrl(item.hlsUrl, env.PLAYBACK_SIGNING_SECRET);
   return res.json({ hlsUrl: signedHlsUrl, title: item.title });
 });
@@ -161,8 +262,16 @@ router.post("/:slug/progress", requireAuth, async (req, res) => {
   const parsed = progressSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: "Invalid progress payload" });
   const data = parsed.data;
-  const item = await OttContent.findOne({ slug: req.params.slug });
+  const item = await findOttItemBySlug(req.params.slug);
   if (!item) return res.status(404).json({ message: "Content not found" });
+  if (!isPersistedOttItem(item)) {
+    const progress = await WatchProgress.findOneAndUpdate(
+      { userId: req.user.sub, ottSlug: item.slug },
+      { seconds: data.seconds, completed: data.completed, deviceId: data.deviceId },
+      { upsert: true, new: true }
+    );
+    return res.json(progress);
+  }
   const progress = await WatchProgress.findOneAndUpdate(
     { userId: req.user.sub, ottContentId: item._id },
     { seconds: data.seconds, completed: data.completed, deviceId: data.deviceId },
@@ -172,7 +281,7 @@ router.post("/:slug/progress", requireAuth, async (req, res) => {
 });
 
 router.get("/:slug", async (req, res) => {
-  const item = await OttContent.findOne({ slug: req.params.slug });
+  const item = await findOttItemBySlug(req.params.slug);
   if (!item) return res.status(404).json({ message: "Content not found" });
   return res.json(item);
 });
